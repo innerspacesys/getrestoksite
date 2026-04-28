@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function BetaNotice() {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    // Only hide if they acknowledged for THIS SESSION
-    const acknowledged = sessionStorage.getItem("restok_beta_ack");
-    if (!acknowledged) setShow(true);
-  }, []);
+  const [show, setShow] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !sessionStorage.getItem("restok_beta_ack");
+  });
 
   function acknowledge() {
     sessionStorage.setItem("restok_beta_ack", "true");

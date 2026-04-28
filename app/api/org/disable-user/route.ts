@@ -34,10 +34,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.log(err);
     return NextResponse.json(
-      { error: err.message || "Failed" },
+      { error: err instanceof Error ? err.message : "Failed" },
       { status: 500 }
     );
   }

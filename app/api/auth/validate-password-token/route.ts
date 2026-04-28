@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       email: data.email || null,
       uid: data.uid,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("validate-password-token failed:", err);
     return NextResponse.json(
       { error: "Server error" },

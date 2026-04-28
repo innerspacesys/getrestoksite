@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import {
   onAuthStateChanged,
@@ -26,7 +27,7 @@ export const PLANS = {
 export default function SettingsPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
   // Profile
@@ -53,6 +54,7 @@ export default function SettingsPage() {
   // Billing
   const [plan, setPlan] = useState<keyof typeof PLANS>("basic");
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [role, setRole] = useState<"owner" | "admin" | "member">("member");
   const [planLoaded, setPlanLoaded] = useState(false);
 
   // ---------------- AUTH ----------------
@@ -72,7 +74,11 @@ export default function SettingsPage() {
 
     const ref = doc(db, "users", user.uid);
     const unsub = onSnapshot(ref, (snap) => {
-      const data: any = snap.data() || {};
+      const data = (snap.data() || {}) as {
+        name?: string;
+        emailNotifications?: boolean;
+        lowStockAlerts?: boolean;
+      };
       setName(data.name || user.displayName || "");
       setEmailNotifications(data.emailNotifications ?? true);
       setLowStockAlerts(data.lowStockAlerts ?? true);
@@ -90,6 +96,9 @@ export default function SettingsPage() {
       if (!data?.orgId) return;
 
       setOrgId(data.orgId);
+      setRole(
+        data.role === "owner" || data.role === "admin" ? data.role : "member"
+      );
 
       const orgRef = doc(db, "organizations", data.orgId);
       const unsubOrg = onSnapshot(orgRef, (orgSnap) => {
@@ -124,7 +133,11 @@ export default function SettingsPage() {
   }, []);
 
   // ---------------- ACTIONS ----------------
-  async function handleSaveProfile(e: any) {
+  function getErrorMessage(err: unknown, fallback: string) {
+    return err instanceof Error ? err.message : fallback;
+  }
+
+  async function handleSaveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
 
@@ -136,8 +149,8 @@ export default function SettingsPage() {
         await updateProfile(user, { displayName: name.trim() });
         await updateDoc(doc(db, "users", user.uid), { name: name.trim() });
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to save profile.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to save profile."));
     }
 
     setSavingProfile(false);
@@ -154,14 +167,14 @@ export default function SettingsPage() {
         emailNotifications,
         lowStockAlerts,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to save preferences.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to save preferences."));
     }
 
     setSavingPrefs(false);
   }
 
-  async function handleChangePassword(e: any) {
+  async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
 
@@ -176,17 +189,24 @@ export default function SettingsPage() {
       setPasswordMsg("Password updated successfully.");
       setCurrentPassword("");
       setNewPassword("");
-    } catch (err: any) {
-      setError(err.message || "Failed to update password.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to update password."));
     }
   }
 
-  async function handleDeleteAccount(e: any) {
+  async function handleDeleteAccount(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
 
     if (deleteConfirmText !== "DELETE") {
       setError('You must type "DELETE" to confirm.');
+      return;
+    }
+
+    if (role === "owner") {
+      setError(
+        "Transfer ownership before deleting the organization owner's account."
+      );
       return;
     }
 
@@ -197,8 +217,8 @@ export default function SettingsPage() {
       await deleteDoc(doc(db, "users", user.uid));
       await deleteUser(user);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Failed to delete account.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to delete account."));
     }
   }
 
@@ -216,6 +236,10 @@ export default function SettingsPage() {
         </div>
       </motion.main>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   // ---------------- UI ----------------
@@ -254,7 +278,7 @@ export default function SettingsPage() {
             placeholder="Full name"
           />
 
-          <input readOnly className="input" value={user.email} />
+          <input readOnly className="input" value={user.email ?? ""} />
 
           <button className="w-full md:w-auto px-4 py-2 bg-sky-600 text-white rounded-lg">
             {savingProfile ? "Saving…" : "Save Profile"}
@@ -318,11 +342,15 @@ export default function SettingsPage() {
 
         <button
           onClick={async () => {
-            const res = await fetch("/api/stripe/create-portal", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orgId }),
-            });
+            const token = await auth.currentUser?.getIdToken();
+const res = await fetch("/api/stripe/create-portal", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({ orgId }),
+});
 
             const data = await res.json();
             if (data?.url) window.location.href = data.url;
@@ -370,6 +398,11 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <div className="mt-6 border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 rounded-lg">
           <div className="font-semibold text-red-600 mb-2">Danger Zone</div>
+          {role === "owner" && (
+            <p className="mb-3 text-sm text-red-700 dark:text-red-300">
+              Transfer ownership before deleting this account.
+            </p>
+          )}
 
           <form onSubmit={handleDeleteAccount} className="space-y-3">
             <input
@@ -389,7 +422,7 @@ export default function SettingsPage() {
             />
 
             <button
-              disabled={deleteConfirmText !== "DELETE"}
+              disabled={deleteConfirmText !== "DELETE" || role === "owner"}
               className="w-full md:w-auto px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50"
             >
               Permanently Delete Account

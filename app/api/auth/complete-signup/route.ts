@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
-import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
   const { token, password } = await req.json();

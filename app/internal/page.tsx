@@ -20,6 +20,7 @@ type InternalUser = {
   id: string; // uid
   email: string;
   name?: string;
+  displayName?: string;
   phone?: string;
   orgId?: string | null;
   role?: string;
@@ -32,6 +33,17 @@ type InternalUser = {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   orgName?: string;
+  internalNotes?: string;
+};
+
+type InternalOrg = {
+  ownerId?: string;
+  name?: string;
+  plan?: Plan;
+  status?: OrgStatus;
+  manualPlanOverride?: boolean;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
   internalNotes?: string;
 };
 
@@ -74,7 +86,7 @@ export default function InternalPanel() {
   const [newPass, setNewPass] = useState("");
   const [newName, setNewName] = useState("");
 
-  async function createTester(e: any) {
+  async function createTester(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const token = await auth.currentUser?.getIdToken();
@@ -113,7 +125,7 @@ export default function InternalPanel() {
     const snap = await getDocs(collection(db, "users"));
     const raw = snap.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as any),
+      ...(d.data() as Omit<InternalUser, "id">),
     }));
 
     const owners: InternalUser[] = [];
@@ -126,7 +138,7 @@ export default function InternalPanel() {
       const orgSnap = await getDoc(orgRef);
       if (!orgSnap.exists()) continue;
 
-      const org: any = orgSnap.data();
+      const org = orgSnap.data() as InternalOrg;
 
       // Only show REAL org owners to avoid duplicates (members/admins)
       if (org.ownerId !== u.id) continue;
@@ -161,7 +173,6 @@ export default function InternalPanel() {
   useEffect(() => {
     if (!authReady) return;
     loadUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady]);
 
   // -----------------------------

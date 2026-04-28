@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
 const sections = [
@@ -360,7 +361,7 @@ export default function TermsPage() {
       {/* HEADER (matches homepage style, with Terms link) */}
       <header className="border-b py-4 sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur z-50">
         <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <Image
               src="/logo.svg"
               alt="Restok logo"
@@ -376,20 +377,20 @@ export default function TermsPage() {
                 Your office, always stocked.
               </div>
             </div>
-          </a>
+          </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="/#features" className="hover:text-slate-900">Features</a>
-            <a href="/#how" className="hover:text-slate-900">How it works</a>
-            <a href="/#pricing" className="hover:text-slate-900">Pricing</a>
-            <a href="/terms" className="hover:text-slate-900">Terms</a>
-            <a href="/login" className="text-sky-600 font-medium">Log in</a>
-            <a
+            <Link href="/#features" className="hover:text-slate-900">Features</Link>
+            <Link href="/#how" className="hover:text-slate-900">How it works</Link>
+            <Link href="/#pricing" className="hover:text-slate-900">Pricing</Link>
+            <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+            <Link href="/login" className="text-sky-600 font-medium">Log in</Link>
+            <Link
               href="/signup"
               className="ml-2 inline-block bg-sky-600 text-white px-4 py-2 rounded-lg shadow"
             >
               Get Started
-            </a>
+            </Link>
           </nav>
         </div>
       </header>
@@ -478,16 +479,16 @@ export default function TermsPage() {
           <div>
             <div className="font-semibold">Product</div>
             <ul className="mt-2 space-y-2">
-              <li><a href="/#features">Features</a></li>
-              <li><a href="/#pricing">Pricing</a></li>
-              <li><a href="/terms">Terms</a></li>
+              <li><Link href="/#features">Features</Link></li>
+              <li><Link href="/#pricing">Pricing</Link></li>
+              <li><Link href="/terms">Terms</Link></li>
             </ul>
           </div>
           <div>
             <div className="font-semibold">Company</div>
             <ul className="mt-2 space-y-2">
-              <li><a href="/about">About</a></li>
-              <li><a href="/contact-us">Contact Us</a></li>
+              <li><Link href="/about">About</Link></li>
+              <li><Link href="/contact-us">Contact Us</Link></li>
             </ul>
           </div>
         </div>

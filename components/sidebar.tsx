@@ -1,6 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import { auth, db } from "../lib/firebase";
 import { useEffect, useState } from "react";
@@ -11,14 +14,22 @@ type Plan = "basic" | "pro" | "premium" | "enterprise";
 type SidebarProps = {
   onNavigate?: () => void;
 };
+
+type MeResponse = {
+  uid?: string;
+  email?: string;
+  name?: string;
+  orgName?: string;
+  plan?: string;
+};
+
 export default function Sidebar({ onNavigate }: SidebarProps) {
+  const pathname = usePathname();
   const [plan, setPlan] = useState<Plan>("basic");
-  const [role, setRole] =
-    useState<"owner" | "admin" | "member">("member");
   const [loading, setLoading] = useState(true);
 
   const [showSupport, setShowSupport] = useState(false);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<MeResponse | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
   // Load user + org + plan + /api/me
@@ -53,8 +64,6 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           setLoading(false);
           return;
         }
-
-        setRole(data.role || "member");
 
         const orgId = data.orgId;
         if (!orgId) {
@@ -94,48 +103,57 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
     <>
       {/* ---------- SIDEBAR ---------- */}
       <aside
-  className="
-    flex w-64 shrink-0 h-full
-    bg-white dark:bg-slate-900
-    border-r border-slate-200 dark:border-slate-700
-    p-4 md:p-6 flex-col
-  "
->
-  {/* Top scrollable area */}
-  <div className="flex-1 overflow-y-auto">
-    {/* Logo */}
-    <img src="/logo.svg" alt="Restok Logo" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
+        className="surface-panel flex h-full w-72 shrink-0 flex-col border-r border-white/40 p-4 md:p-5 dark:border-white/10"
+      >
+        <div className="mb-5 rounded-3xl border border-white/40 bg-white/55 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-sky-50 p-2.5 dark:bg-sky-950/50">
+              <Image
+                src="/logo.svg"
+                alt="Restok Logo"
+                width={36}
+                height={36}
+                className="h-9 w-9"
+              />
+            </div>
 
-    <motion.h1
-      className="hidden sm:block text-2xl font-bold mb-8 text-slate-800 dark:text-slate-100"
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-    >
-      Restok
-    </motion.h1>
+            <div>
+              <motion.h1
+                className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                Restok
+              </motion.h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Restock workflow hub
+              </p>
+            </div>
+          </div>
+        </div>
 
-    {/* Navigation */}
-    <nav className="flex flex-col gap-2 text-slate-700 dark:text-slate-200">
-      <NavItem href="/dashboard" label="Dashboard" emoji="📊" />
-      <NavItem href="/dashboard/items" label="Items" emoji="📦" />
-      <NavItem href="/dashboard/vendors" label="Vendors" emoji="🏪" />
-      <NavItem href="/dashboard/locations" label="Locations" emoji="📍" />
-      <NavItem href="/dashboard/restock" label="Restock" emoji="🧾" />
-      <NavItem href="/dashboard/reports" label="Reports" emoji="📝" />
-      <NavItem href="/dashboard/users" label="Users" emoji="👥" />
-      <NavItem href="/dashboard/settings" label="Settings" emoji="⚙️" />
-    </nav>
-  </div>
+        <div className="flex-1 overflow-y-auto pr-1">
+          <nav className="flex flex-col gap-1.5 text-slate-700 dark:text-slate-200">
+            <NavItem href="/dashboard" label="Dashboard" emoji="📊" active={pathname === "/dashboard"} onClick={onNavigate} />
+            <NavItem href="/dashboard/items" label="Items" emoji="📦" active={pathname === "/dashboard/items"} onClick={onNavigate} />
+            <NavItem href="/dashboard/vendors" label="Vendors" emoji="🏪" active={pathname === "/dashboard/vendors"} onClick={onNavigate} />
+            <NavItem href="/dashboard/locations" label="Locations" emoji="📍" active={pathname === "/dashboard/locations"} onClick={onNavigate} />
+            <NavItem href="/dashboard/restock" label="Restock" emoji="🧾" active={pathname === "/dashboard/restock"} onClick={onNavigate} />
+            <NavItem href="/dashboard/reports" label="Reports" emoji="📝" active={pathname === "/dashboard/reports"} onClick={onNavigate} />
+            <NavItem href="/dashboard/users" label="Users" emoji="👥" active={pathname === "/dashboard/users"} onClick={onNavigate} />
+            <NavItem href="/dashboard/settings" label="Settings" emoji="⚙️" active={pathname === "/dashboard/settings"} onClick={onNavigate} />
+          </nav>
+        </div>
 
         {/* ---------- Bottom ---------- */}
-        <div className="flex flex-col gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+        <div className="mt-5 flex flex-col gap-3 border-t border-slate-200/70 pt-5 dark:border-slate-700/70">
           {/* PLAN */}
-          <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-sm">
+          <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-4 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">
-              <span className="text-slate-500 dark:text-slate-400">Plan</span>
+              <span className="text-slate-500 dark:text-slate-400">Current plan</span>
 
               <span className={`
-                px-2 py-0.5 rounded text-xs font-semibold
+                rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em]
                 ${
                   plan === "basic"
                     ? "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
@@ -156,7 +174,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
                   (window.location.href =
                     "/dashboard/settings#billing")
                 }
-                className="mt-2 w-full text-xs bg-sky-600 hover:bg-sky-700 text-white py-1.5 rounded-md"
+                className="button-primary mt-3 w-full !rounded-2xl !px-3 !py-2 text-xs shadow-none"
               >
                 {plan === "basic" ? "Upgrade plan" : "Manage plan"}
               </button>
@@ -167,30 +185,31 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
           {/* Support button */}
           <button
-      onClick={() => setShowSupport(true)}
-      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-    >
-      💬 Support
-    </button>
+            onClick={() => setShowSupport(true)}
+            className="button-secondary w-full justify-start !rounded-2xl !px-4 !py-3 text-sm"
+          >
+            <span>💬</span>
+            <span>Support</span>
+          </button>
 
           {/* Logout */}
           <motion.button
-      onClick={async () => {
-        try {
-          await auth.signOut();
-          await fetch("/api/auth/logout", { method: "POST" });
-          window.location.href = "/login";
-        } catch (err) {
-          console.error("Logout failed", err);
-          alert("Failed to log out");
-        }
-      }}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      className="bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
-    >
-      Log Out
-    </motion.button>
+            onClick={async () => {
+              try {
+                await auth.signOut();
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              } catch (err) {
+                console.error("Logout failed", err);
+                alert("Failed to log out");
+              }
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="rounded-2xl bg-rose-500 py-3 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
+          >
+            Log Out
+          </motion.button>
         </div>
       </aside>
 
@@ -227,11 +246,11 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
         setShowSupport(false);
       }}
-      className="bg-white dark:bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700"
+    className="surface-panel w-full max-w-md rounded-[28px] p-6 shadow-2xl"
     >
       <h2 className="text-xl font-semibold mb-4">Contact Support</h2>
 
-      <div className="text-sm mb-3 p-3 rounded bg-slate-100 dark:bg-slate-800">
+      <div className="mb-3 rounded-2xl bg-slate-100/80 p-3 text-sm dark:bg-slate-800/80">
         {!userInfo ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin h-6 w-6 border-4 border-sky-500 border-t-transparent rounded-full" />
@@ -292,18 +311,29 @@ function NavItem({
   href,
   emoji,
   label,
+  active,
+  onClick,
 }: {
   href: string;
   emoji: string;
   label: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <motion.a
+    <motion.div whileHover={{ x: 3 }}>
+      <Link
       href={href}
-      whileHover={{ x: 4 }}
-      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-    >
-      {emoji} {label}
-    </motion.a>
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium ${
+        active
+          ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+          : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/80"
+      }`}
+      >
+        <span className="text-base">{emoji}</span>
+        <span>{label}</span>
+      </Link>
+    </motion.div>
   );
 }

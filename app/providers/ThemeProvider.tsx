@@ -1,34 +1,36 @@
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
-export const ThemeContext = createContext<any>(null);
+type ThemeMode = "light" | "dark";
+type ThemeContextValue = {
+  theme: ThemeMode;
+  toggleTheme: () => void;
+};
 
-export default function ThemeProvider({ children }: any) {
-  const [theme, setTheme] = useState("light");
+export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-  // Load stored preference or system theme
-  useEffect(() => {
+export default function ThemeProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "light";
+
     const saved = localStorage.getItem("theme");
-    if (saved) {
-      setTheme(saved);
-      document.documentElement.classList.toggle(
-        "dark",
-        saved === "dark"
-      );
-    } else {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-
-      setTheme(prefersDark ? "dark" : "light");
-      document.documentElement.classList.toggle(
-        "dark",
-        prefersDark
-      );
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.classList.toggle("dark", saved === "dark");
+      return saved;
     }
-  }, []);
+
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    document.documentElement.classList.toggle("dark", prefersDark);
+    return prefersDark ? "dark" : "light";
+  });
 
   function toggleTheme() {
     const newTheme = theme === "light" ? "dark" : "light";

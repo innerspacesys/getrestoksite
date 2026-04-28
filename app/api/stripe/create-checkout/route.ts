@@ -4,6 +4,14 @@ import { adminDb } from "@/lib/firebaseAdmin";
 
 type Plan = "basic" | "pro" | "premium" ;
 type Interval = "monthly" | "yearly";
+type CheckoutBody = {
+  email?: string;
+  name?: string;
+  orgName?: string;
+  phone?: string;
+  plan?: Plan;
+  interval?: Interval;
+};
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +24,12 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    const body = await req.json();
+    const body = (await req.json()) as CheckoutBody;
 
-    const email: string | undefined = body.email;
-    const name: string | undefined = body.name;
-    const phone: string | undefined = body.phone;
+    const email = body.email;
+    const name = body.name;
+    const orgName = body.orgName?.trim();
+    const phone = body.phone;
     const plan = (body.plan ?? "") as Plan;
     const interval = (body.interval ?? "monthly") as Interval;
 
@@ -68,6 +77,7 @@ export async function POST(req: Request) {
         interval,
         email,
         name: name || "",
+        orgName: orgName || "",
         phone: phone || "",
       },
 
@@ -85,6 +95,7 @@ export async function POST(req: Request) {
     await adminDb.collection("pendingSignups").doc(session.id).set({
       email,
       name: name || "",
+      orgName: orgName || "",
       phone: phone || "",
       plan,
       interval,

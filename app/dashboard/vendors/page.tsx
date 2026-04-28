@@ -164,7 +164,10 @@ export default function VendorsPage() {
           </div>
         )}
 
-        {vendors.map((v, i) => (
+        {vendors.map((vendor, i) => {
+          const v = vendor as VendorDoc;
+
+          return (
           <motion.div
             key={v.id}
             initial={{ opacity: 0, y: 8 }}
@@ -219,7 +222,8 @@ export default function VendorsPage() {
               </button>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ADD / EDIT MODAL */}

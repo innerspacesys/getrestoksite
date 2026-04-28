@@ -1,23 +1,48 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // CHANGE THESE
 const SUPPORT_TO = "support@getrestok.com";
-const BCC = ["cory@issioffice.com", "braden@issioffice.com", "issichatt@gmail.com"];
+const BCC = [
+  "cory@issioffice.com",
+  "braden@issioffice.com",
+  "issichatt@gmail.com",
+];
+
+type SupportMetadata = {
+  name?: string;
+  email?: string;
+  orgName?: string;
+  plan?: string;
+  uid?: string;
+};
+
+type EmailAttachment = {
+  filename: string;
+  content: string;
+};
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "Email is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const form = await request.formData();
 
-    const metadata = JSON.parse(form.get("metadata") as string);
+    const metadata = JSON.parse(
+      String(form.get("metadata") || "{}")
+    ) as SupportMetadata;
     const subject = form.get("subject") as string;
     const message = form.get("message") as string;
 
     const file = form.get("file") as File | null;
 
-    let attachments: any[] = [];
+    const attachments: EmailAttachment[] = [];
 
     if (file) {
       const buffer = Buffer.from(await file.arrayBuffer());

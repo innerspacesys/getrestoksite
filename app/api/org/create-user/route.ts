@@ -119,11 +119,13 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Create user failed:", err);
 
     return NextResponse.json(
-      { error: err.message || "Something went wrong" },
+      {
+        error: err instanceof Error ? err.message : "Something went wrong",
+      },
       { status: 500 }
     );
   }

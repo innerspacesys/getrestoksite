@@ -5,19 +5,34 @@ import { Timestamp } from "firebase-admin/firestore";
 import { Resend } from "resend";
 import crypto from "crypto";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const resend = new Resend(process.env.RESEND_API_KEY!);
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("Stripe not configured");
+  }
+
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 // -------------------------
 // PLAN NORMALIZER
 // -------------------------
-function normalizePlan(value: any): "basic" | "pro" | "premium" | "enterprise" {
+function normalizePlan(
+  value: string | Stripe.Product | Stripe.DeletedProduct | null | undefined
+): "basic" | "pro" | "premium" | "enterprise" {
   const v = String(value || "").toLowerCase();
 
   if (v.includes("enterprise")) return "enterprise";
   if (v.includes("premium")) return "premium";
   if (v.includes("pro")) return "pro";
   return "basic";
+}
+
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
 export async function POST(req: Request) {
@@ -31,7 +46,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
@@ -58,7 +73,7 @@ export async function POST(req: Request) {
     }
 
     const pending = pendingSnap.data()!;
-    const { email, name, phone, plan } = pending;
+    const { email, name, orgName, phone, plan } = pending;
 
     const existingUser = await adminAuth
       .getUserByEmail(email)
@@ -79,7 +94,7 @@ export async function POST(req: Request) {
     const orgId = userRecord.uid;
 
     await adminDb.collection("organizations").doc(orgId).set({
-      name: name || "My Organization",
+      name: orgName || name || "My Organization",
       ownerId: orgId,
       orgId,
       plan: normalizedPlan,
@@ -94,7 +109,7 @@ export async function POST(req: Request) {
       email,
       phone: phone || "",
       orgId,
-      role: "admin",
+      role: "owner",
       createdAt: Timestamp.now(),
     });
 
@@ -111,7 +126,7 @@ export async function POST(req: Request) {
 
     const setupUrl = `https://getrestok.com/set-password?token=${token}`;
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: "Restok <accounts@getrestok.com>",
       to: email,
       subject: "Set your Restok password",

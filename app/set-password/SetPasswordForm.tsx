@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function SetPasswordForm() {
@@ -18,6 +19,10 @@ export default function SetPasswordForm() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Failed to set password";
+  }
 
   // --------------------------
   // Validate token on load
@@ -37,7 +42,7 @@ export default function SetPasswordForm() {
           body: JSON.stringify({ token }),
         });
 
-        const data = await res.json();
+        await res.json();
         setTokenValid(res.ok);
       } catch {
         setTokenValid(false);
@@ -74,8 +79,8 @@ export default function SetPasswordForm() {
 
       setSuccess(true);
       setTimeout(() => router.push("/login"), 1200);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setLoading(false);
     }
   }
@@ -103,12 +108,12 @@ export default function SetPasswordForm() {
             This password setup link is invalid or has expired.
           </p>
 
-          <a
-            href="https://getrestok.com/login"
+          <Link
+            href="/login"
             className="inline-block mt-6 bg-sky-600 text-white px-6 py-3 rounded-lg"
           >
             Go to Login
-          </a>
+          </Link>
         </div>
       </div>
     );

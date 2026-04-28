@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import {
   collection,
@@ -11,7 +12,6 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { PLANS } from "@/lib/plans";
 
 async function setReorderMethod(
   orgId: string,
@@ -38,7 +38,7 @@ type VendorDoc = {
   website?: string | null;
 };
 
-
+type Unsubscribe = (() => void) | undefined;
 
 export default function RestockPage() {
   const router = useRouter();
@@ -52,19 +52,14 @@ export default function RestockPage() {
   const reviewIds: string[] =
     searchParams?.get("review")?.split(",").filter(Boolean) ?? [];
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
 
   const [items, setItems] = useState<ItemDoc[]>([]);
   const [vendors, setVendors] = useState<Record<string, VendorDoc>>({});
-  const [plan, setPlan] = useState<keyof typeof PLANS>("basic");
 
-  const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [showRestockConfirm, setShowRestockConfirm] = useState(false);
   const [restockingItem, setRestockingItem] = useState<ItemDoc | null>(null);
-
-  const isProOrHigher =
-    plan === "pro" || plan === "premium" || plan === "enterprise";
 
   // ---------- LOADING FLAGS ----------
   const [planLoaded, setPlanLoaded] = useState(false);
@@ -76,10 +71,10 @@ export default function RestockPage() {
   // AUTH → USER → ORG → PLAN + DATA
   // ---------------------------------
   useEffect(() => {
-    let unsubUser: any;
-    let unsubOrg: any;
-    let unsubItems: any;
-    let unsubVendors: any;
+    let unsubUser: Unsubscribe;
+    let unsubOrg: Unsubscribe;
+    let unsubItems: Unsubscribe;
+    let unsubVendors: Unsubscribe;
 
     const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
@@ -101,15 +96,7 @@ export default function RestockPage() {
           unsubOrg?.();
           unsubOrg = onSnapshot(
             doc(db, "organizations", org),
-            (orgSnap) => {
-              const rawPlan = orgSnap.data()?.plan;
-              setPlan(
-                rawPlan === "pro" ||
-                rawPlan === "premium" ||
-                rawPlan === "enterprise"
-                  ? rawPlan
-                  : "basic"
-              );
+            () => {
               setPlanLoaded(true);
             }
           );
@@ -121,7 +108,10 @@ export default function RestockPage() {
             (snap) => {
               const map: Record<string, VendorDoc> = {};
               snap.docs.forEach((d) => {
-                map[d.id] = { id: d.id, ...(d.data() as any) };
+                map[d.id] = {
+                  id: d.id,
+                  ...(d.data() as Omit<VendorDoc, "id">),
+                };
               });
               setVendors(map);
               setVendorsLoaded(true);
@@ -136,7 +126,7 @@ export default function RestockPage() {
               setItems(
                 snap.docs.map((d) => ({
                   id: d.id,
-                  ...(d.data() as any),
+                  ...(d.data() as Omit<ItemDoc, "id">),
                 })) as ItemDoc[]
               );
               setItemsLoaded(true);

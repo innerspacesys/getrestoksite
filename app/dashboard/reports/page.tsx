@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useOrgData } from "@/lib/useOrgData";
+
+type TimestampLike = {
+  toDate: () => Date;
+};
 
 type Item = {
   id: string;
   name: string;
   daysLast: number;
-  createdAt?: any;
+  createdAt?: TimestampLike | null;
   vendorId?: string;
 };
 
@@ -18,10 +23,16 @@ type Vendor = {
   hasPhysicalStore?: boolean;
 };
 
-type Plan = "basic" | "pro" | "premium" | "enterprise";
+type VendorGroups = Record<string, Item[]>;
 
 // 🔒 PRO Upsell Blur
-function LockedBlur({ children, onClick }: any) {
+function LockedBlur({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
   return (
     <div
       onClick={onClick}
@@ -48,59 +59,58 @@ export default function ReportsPage() {
   const { items, vendors: vendorList, plan, loading } = useOrgData();
 
   const [filter, setFilter] = useState<"low" | "due" | "all">("low");
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showUpsell, setShowUpsell] = useState(false);
+  const [renderedAt] = useState(() => Date.now());
 
   // Convert vendor list to map for easy lookup
-  const vendors: Record<string, Vendor> = {};
-  vendorList.forEach((v: any) => {
-    vendors[v.id] = v;
-  });
+  const vendors = useMemo(() => {
+    const next: Record<string, Vendor> = {};
+    vendorList.forEach((vendor) => {
+      next[vendor.id] = vendor as Vendor;
+    });
+    return next;
+  }, [vendorList]);
 
   // -------------------------
   // FILTERING
   // -------------------------
-  useEffect(() => {
-    if (!items.length) {
-      setFilteredItems([]);
-      setSelectedIds(new Set());
-      return;
-    }
-
-    const now = Date.now();
+  const filteredItems = useMemo(() => {
+    const typedItems = items.map((item) => item as Item);
 
     function daysLeft(item: Item) {
       if (!item.createdAt?.toDate) return 999;
       const created = item.createdAt.toDate();
-      const diff = Math.floor((now - created.getTime()) / 86400000);
+      const diff = Math.floor((renderedAt - created.getTime()) / 86400000);
       return item.daysLast - diff;
     }
 
-    let result = items as any[];
+    let result = typedItems;
 
-    if (filter === "low")
-      result = items.filter((i: any) => {
-        const d = daysLeft(i);
+    if (filter === "low") {
+      result = typedItems.filter((item) => {
+        const d = daysLeft(item);
         return d <= 3 && d > 0;
       });
+    }
 
-    if (filter === "due")
-      result = items.filter((i: any) => daysLeft(i) <= 0);
+    if (filter === "due") {
+      result = typedItems.filter((item) => daysLeft(item) <= 0);
+    }
 
-    setFilteredItems(result);
-  }, [items, filter]);
+    return result;
+  }, [filter, items, renderedAt]);
 
   // -------------------------
   // GROUP STORE PICKUP LIST
   // -------------------------
-  const storeItems = filteredItems.filter((item: any) => {
+  const storeItems = filteredItems.filter((item) => {
     if (!item.vendorId) return false;
     const v = vendors[item.vendorId];
     return v?.hasPhysicalStore === true;
   });
 
-  const grouped = storeItems.reduce((acc: any, item: any) => {
+  const grouped = storeItems.reduce<VendorGroups>((acc, item) => {
     const vendorName =
       (item.vendorId && vendors[item.vendorId]?.name) ||
       "Unknown Vendor";
@@ -113,7 +123,7 @@ export default function ReportsPage() {
   // -------------------------
   // SELECT LOGIC
   // -------------------------
-  const allVisibleIds = filteredItems.map((i: any) => i.id);
+  const allVisibleIds = filteredItems.map((item) => item.id);
   const allVisibleSelected =
     allVisibleIds.length > 0 &&
     allVisibleIds.every((id) => selectedIds.has(id));
@@ -129,7 +139,8 @@ export default function ReportsPage() {
 
   function toggleSingle(id: string) {
     const next = new Set(selectedIds);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     setSelectedIds(next);
   }
 
@@ -245,7 +256,13 @@ export default function ReportsPage() {
 
         {/* PRINT HEADER */}
         <div className="hidden print:block text-center mb-6">
-          <img src="/logo.svg" alt="Restok Logo" className="mx-auto w-12 mb-2" />
+          <Image
+            src="/logo.svg"
+            alt="Restok Logo"
+            width={48}
+            height={48}
+            className="mx-auto mb-2"
+          />
           <h1 className="text-2xl font-bold">Restok Store Pickup List</h1>
           <p className="text-slate-600 text-sm">
             Generated: {new Date().toLocaleString()}
@@ -260,7 +277,7 @@ export default function ReportsPage() {
             </p>
           )}
 
-          {Object.entries(grouped).map(([vendorName, list]: any) => (
+          {Object.entries(grouped).map(([vendorName, list]) => (
             <div
               key={vendorName}
               className="border rounded-xl bg-slate-50 dark:bg-slate-800/60 shadow-sm"
@@ -286,7 +303,7 @@ export default function ReportsPage() {
                   </thead>
 
                   <tbody>
-                    {list.map((item: any) => (
+                    {list.map((item) => (
                       <tr key={item.id} className="border-t">
                         <td className="py-2 px-2">
                           <input
@@ -308,9 +325,9 @@ export default function ReportsPage() {
 
         {/* PRINT LIST */}
         <div className="hidden print:block mt-8">
-          {Object.entries(grouped).map(([vendorName, list]: any) => {
-            const selected = list.filter((i: any) =>
-              selectedIds.has(i.id)
+          {Object.entries(grouped).map(([vendorName, list]) => {
+            const selected = list.filter((item) =>
+              selectedIds.has(item.id)
             );
 
             if (selected.length === 0) return null;
@@ -342,12 +359,12 @@ export default function ReportsPage() {
                   </thead>
 
                   <tbody>
-                    {selected.map((i: any) => (
-                      <tr key={i.id} className="border-t">
+                    {selected.map((item) => (
+                      <tr key={item.id} className="border-t">
                         <td className="py-2">☐</td>
-                        <td className="py-2">{i.name}</td>
+                        <td className="py-2">{item.name}</td>
                         <td className="py-2">
-                          {i.daysLast || "—"}
+                          {item.daysLast || "—"}
                         </td>
                       </tr>
                     ))}

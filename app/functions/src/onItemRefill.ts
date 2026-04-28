@@ -1,7 +1,5 @@
 import { onDocumentWritten } from "firebase-functions/firestore"
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore"
-
-const db = getFirestore()
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 export const onItemRefill = onDocumentWritten(
   "users/{userId}/items/{itemId}",

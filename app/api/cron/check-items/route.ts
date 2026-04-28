@@ -4,15 +4,18 @@ import { Resend } from "resend";
 import { Timestamp } from "firebase-admin/firestore";
 import { resolveNotificationEmail } from "@/lib/email";
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("Missing RESEND_API_KEY");
-}
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function GET() {
   const now = new Date();
   let emailsSent = 0;
+  const resend = getResend();
 
   const usersSnap = await adminDb.collection("users").get();
 
@@ -52,8 +55,8 @@ export async function GET() {
 
         const subject =
           daysLeft <= 0
-            ? `🚨 ${item.name} is OUT`
-            : `⚠️ ${item.name} is running low`;
+            ? `🚨 ${item.name} may be OUT`
+            : `⚠️ ${item.name} may be running low`;
 
         const html = `
 <!DOCTYPE html>
@@ -75,7 +78,7 @@ export async function GET() {
               </div>
 
               <h1 style="margin:0 0 8px 0; font-size:22px; color:#0f172a;">
-                ${daysLeft <= 0 ? "🚨 Item Out of Stock" : "⚠️ Item Running Low"}
+                ${daysLeft <= 0 ? "🚨 Item May Be Out of Stock" : "⚠️ Item May Be Running Low"}
               </h1>
 
               <p style="margin:0 0 20px 0; font-size:15px; color:#475569;">
@@ -98,8 +101,8 @@ export async function GET() {
                   <p style="margin:6px 0 0 0; font-size:14px; color:#7c2d12;">
                     ${
                       daysLeft <= 0
-                        ? "This item has run out and needs restocking."
-                        : `This item will run out in <strong>${daysLeft} days</strong>.`
+                        ? "This item may have run out and may need restocking."
+                        : `This item may run out in <strong>${daysLeft} days</strong>.`
                     }
                   </p>
 

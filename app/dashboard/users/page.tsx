@@ -5,7 +5,7 @@ import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { PLANS } from "@/lib/plans";
-import { useOrgStore } from "@/lib/orgStore";
+import { useOrgStore, type OrgMember } from "@/lib/orgStore";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -30,28 +30,27 @@ export default function UsersPage() {
   // ----------------------
   // SEAT LIMITS
   // ----------------------
-  const memberLimit =
-    plan === "pro"
-      ? 5
-      : plan === "premium" || plan === "enterprise"
-      ? Infinity
-      : 1;
+  const memberLimit = (() => {
+    if (!plan) return Infinity;
+    const planConfig = PLANS[plan as keyof typeof PLANS];
+    return "limits" in planConfig ? planConfig.limits.users : Infinity;
+  })();
 
   const atLimit =
     memberLimit !== Infinity && members.length >= memberLimit;
 
   const adminCount = members.filter(
-    (m: any) => m.role === "admin" || m.role === "owner"
+    (m: OrgMember) => m.role === "admin" || m.role === "owner"
   ).length;
 
-  const isLastAdmin = (m: any) =>
+  const isLastAdmin = (m: OrgMember) =>
     (m.role === "admin" || m.role === "owner") &&
     adminCount <= 1;
 
   // ----------------------
   // ACTIONS
   // ----------------------
-  async function createUser(e: any) {
+  async function createUser(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!orgId) return;
 
@@ -107,7 +106,7 @@ export default function UsersPage() {
     if (data.error) alert(data.error);
   }
 
-  async function deleteUser(uid: string, m: any) {
+  async function deleteUser(uid: string, m: OrgMember) {
     if (uid === auth.currentUser?.uid)
       return alert("You cannot remove yourself.");
     if (m.role === "owner")
@@ -229,7 +228,7 @@ export default function UsersPage() {
               <p className="text-slate-500">No members yet.</p>
             )}
 
-            {members.map((m: any) => (
+            {members.map((m) => (
               <div
                 key={m.id}
                 className="p-4 rounded-xl border bg-white dark:bg-slate-800 flex justify-between items-center"

@@ -68,11 +68,13 @@ export async function POST(req: Request) {
       uid,
       orgId: uid,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("❌ Internal create-user error:", err);
 
     return NextResponse.json(
-      { error: err.message || "Failed to create user" },
+      {
+        error: err instanceof Error ? err.message : "Failed to create user",
+      },
       { status: 500 }
     );
   }

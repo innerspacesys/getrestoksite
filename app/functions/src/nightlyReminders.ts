@@ -5,11 +5,11 @@ const db = admin.firestore();
 
 async function sendEmail(to: string, subject: string, body: string) {
   // Replace with your email system later
-  console.log("EMAIL →", to, subject);
+  console.log("EMAIL →", to, subject, body);
 }
 
 export const nightlyReminderJob = functions.scheduler
-  .onSchedule("every day 02:00", async (context) => {
+  .onSchedule("every day 02:00", async () => {
     const now = admin.firestore.Timestamp.now();
 
     const snap = await db

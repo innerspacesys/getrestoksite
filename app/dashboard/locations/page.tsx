@@ -15,7 +15,6 @@ import {
 } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOrgData } from "@/lib/useOrgData";
-import { useOrgStore } from "@/lib/orgStore";
 
 type LocationDoc = {
   id: string;
@@ -41,7 +40,7 @@ export default function LocationsPage() {
   // --------------------------
   // SAVE
   // --------------------------
-  async function handleSave(e: any) {
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!orgId) return;
 
@@ -187,7 +186,10 @@ export default function LocationsPage() {
           </div>
         )}
 
-        {locations.map((l: any, i: any) => (
+        {locations.map((location, i) => {
+          const l = location as LocationDoc;
+
+          return (
           <motion.div
               key={l.id}
               initial={{ opacity: 0, y: 8 }}
@@ -236,7 +238,8 @@ export default function LocationsPage() {
               </button>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ADD / EDIT MODAL */}

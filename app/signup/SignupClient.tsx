@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
 
 export default function SignupPage() {
-  const router = useRouter();
   const params = useSearchParams();
 
   
@@ -34,6 +34,10 @@ const [selectedPlan, setSelectedPlan] =
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Signup failed";
+  }
 
   // -----------------------------
   // SIGNUP HANDLER
@@ -65,9 +69,9 @@ const [selectedPlan, setSelectedPlan] =
 
     // 🚀 Redirect to Stripe Checkout
     window.location.href = data.url;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
-    setError(err.message || "Signup failed");
+    setError(getErrorMessage(err));
     setLoading(false);
   }
 }
@@ -79,12 +83,12 @@ const [selectedPlan, setSelectedPlan] =
   <div className="min-h-screen bg-zinc-50 px-4 md:px-6 relative">
 
     {/* BACK TO HOME — PAGE LEVEL */}
-    <a
+    <Link
       href="/"
       className="absolute top-6 left-6 text-sky-600 font-medium hover:underline z-10"
     >
       ← Back to Home
-    </a>
+    </Link>
 
     {/* CENTERED SIGNUP CARD */}
     <div className="min-h-screen flex items-center justify-center">
@@ -214,9 +218,9 @@ const [selectedPlan, setSelectedPlan] =
 
         <p className="text-center text-sm text-zinc-600 mt-4">
           Already have an account?{" "}
-          <a href="/login" className="text-sky-600 hover:underline">
+          <Link href="/login" className="text-sky-600 hover:underline">
             Log in
-          </a>
+          </Link>
         </p>
       </div>
     </div>

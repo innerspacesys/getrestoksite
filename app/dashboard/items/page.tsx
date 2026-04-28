@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import {
   doc,
@@ -21,7 +22,7 @@ type ItemDoc = {
   name: string;
   vendorId?: string;
   daysLast: number;
-  createdAt?: any;
+  createdAt?: { toDate: () => Date } | null;
   createdByName?: string;
   description?: string;
   sku?: string;
@@ -32,10 +33,12 @@ type VendorDoc = {
   name: string;
 };
 
+type Unsubscribe = (() => void) | undefined;
+
 export default function ItemsPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [plan, setPlan] = useState<keyof typeof PLANS>("basic");
 
@@ -72,9 +75,9 @@ const [vendorSaving, setVendorSaving] = useState(false);
   // AUTH + ORG + DATA
   // =========================================
   useEffect(() => {
-    let unsubOrg: any;
-    let unsubItems: any;
-    let unsubVendors: any;
+    let unsubOrg: Unsubscribe;
+    let unsubItems: Unsubscribe;
+    let unsubVendors: Unsubscribe;
 
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -108,7 +111,10 @@ const [vendorSaving, setVendorSaving] = useState(false);
           collection(db, "organizations", org, "vendors"),
           (snap) => {
             setVendors(
-              snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+              snap.docs.map((d) => ({
+                id: d.id,
+                ...(d.data() as Omit<VendorDoc, "id">),
+              }))
             );
           }
         );
@@ -118,7 +124,10 @@ const [vendorSaving, setVendorSaving] = useState(false);
           collection(db, "organizations", org, "items"),
           (snap) => {
             setItems(
-              snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+              snap.docs.map((d) => ({
+                id: d.id,
+                ...(d.data() as Omit<ItemDoc, "id">),
+              }))
             );
             setItemsLoaded(true);
           }
@@ -174,7 +183,7 @@ const [vendorSaving, setVendorSaving] = useState(false);
   // =========================================
   // ACTIONS
   // =========================================
-  async function handleAdd(e: any) {
+  async function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user || !orgId) return;
 
@@ -196,7 +205,7 @@ const [vendorSaving, setVendorSaving] = useState(false);
     setSku("");
   }
 
-  async function handleEdit(e: any) {
+  async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!orgId || !editItem) return;
 
@@ -215,7 +224,7 @@ const [vendorSaving, setVendorSaving] = useState(false);
     setEditItem(null);
   }
 
-  async function handleCreateVendor(e: any) {
+  async function handleCreateVendor(e: React.FormEvent<HTMLFormElement>) {
   e.preventDefault();
   if (!orgId || !newVendorName.trim()) return;
 

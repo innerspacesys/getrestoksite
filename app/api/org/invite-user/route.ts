@@ -4,8 +4,6 @@ import { Timestamp } from "firebase-admin/firestore";
 import crypto from "crypto";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
 // PLANS — matches UI
 const PLAN_LIMITS: Record<string, number | "infinite"> = {
   basic: 1,
@@ -13,6 +11,14 @@ const PLAN_LIMITS: Record<string, number | "infinite"> = {
   premium: "infinite",
   enterprise: "infinite",
 };
+
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function POST(req: Request) {
   try {
@@ -151,7 +157,7 @@ export async function POST(req: Request) {
     // ---------------------------
     // SEND EMAIL
     // ---------------------------
-    await resend.emails.send({
+    await getResend().emails.send({
       from: "Restok <accounts@getrestok.com>",
       to: email,
       subject: `You've been invited to join ${org.name} on Restok`,
@@ -170,10 +176,12 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Invite user failed:", err);
     return NextResponse.json(
-      { error: err.message || "Something went wrong" },
+      {
+        error: err instanceof Error ? err.message : "Something went wrong",
+      },
       { status: 500 }
     );
   }

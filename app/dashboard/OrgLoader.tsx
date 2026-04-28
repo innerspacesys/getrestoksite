@@ -13,18 +13,20 @@ import {
 import { useRouter } from "next/navigation";
 import { useOrgStore } from "@/lib/orgStore";
 
+type Unsubscribe = (() => void) | undefined;
+
 export default function OrgLoader({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const set = useOrgStore((s) => s.setState);
   const reset = useOrgStore((s) => s.reset);
 
   useEffect(() => {
-    let unsubUser: any;
-    let unsubOrg: any;
-    let unsubItems: any;
-    let unsubVendors: any;
-    let unsubMembers: any;
-    let unsubLocations: any;
+    let unsubUser: Unsubscribe;
+    let unsubOrg: Unsubscribe;
+    let unsubItems: Unsubscribe;
+    let unsubVendors: Unsubscribe;
+    let unsubMembers: Unsubscribe;
+    let unsubLocations: Unsubscribe;
 
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -100,9 +102,7 @@ export default function OrgLoader({ children }: { children: React.ReactNode }) {
               loading: false,
             });
           }
-        )
-
-
+        );
       });
     });
 

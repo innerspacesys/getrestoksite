@@ -20,6 +20,10 @@ export default function InternalLogin() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Login failed";
+  }
+
   // If already signed in & internal, redirect immediately
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
@@ -29,7 +33,7 @@ export default function InternalLogin() {
       }
 
       const snap = await getDoc(doc(db, "users", user.uid));
-      const data: any = snap.data();
+      const data = snap.data() as { internalAdmin?: boolean } | undefined;
 
       if (data?.internalAdmin) {
         router.push("/internal");
@@ -42,7 +46,7 @@ export default function InternalLogin() {
     });
   }, [router]);
 
-  async function handleLogin(e: any) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -51,7 +55,7 @@ export default function InternalLogin() {
       const res = await signInWithEmailAndPassword(auth, email, password);
 
       const snap = await getDoc(doc(db, "users", res.user.uid));
-      const data: any = snap.data();
+      const data = snap.data() as { internalAdmin?: boolean } | undefined;
 
       if (!data?.internalAdmin) {
         await signOut(auth);
@@ -61,8 +65,8 @@ export default function InternalLogin() {
       }
 
       router.push("/internal");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     }
 
     setLoading(false);

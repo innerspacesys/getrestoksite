@@ -2,7 +2,7 @@ export const PLANS = {
   basic: {
     id: "basic",
     name: "Basic",
-    priceMonthly: 1200, // cents
+    priceMonthly: 599, // cents
     priceYearly: 12000,
     limits: {
       items: 5,

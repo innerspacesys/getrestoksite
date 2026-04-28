@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,7 +17,11 @@ export default function LoginClient() {
 
   const showSetupMessage = params.get("setup") === "1";
 
-  async function handleLogin(e: any) {
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Failed to log in";
+  }
+
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -24,8 +29,8 @@ export default function LoginClient() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -33,12 +38,12 @@ export default function LoginClient() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 md:p-6 relative">
-      <a
+      <Link
         href="/"
         className="absolute top-4 left-4 md:top-6 md:left-6 text-sky-600 font-medium hover:underline"
       >
         ← Back to Home
-      </a>
+      </Link>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 md:p-8">
         <h1 className="text-2xl font-bold text-center">Log in</h1>
@@ -97,9 +102,9 @@ export default function LoginClient() {
 
         <p className="text-center text-sm text-slate-500 mt-4">
           Don’t have an account?
-          <a href="/signup" className="text-sky-600 ml-1">
+          <Link href="/signup" className="text-sky-600 ml-1">
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>

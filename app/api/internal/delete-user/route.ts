@@ -59,11 +59,13 @@ export async function POST(req: Request) {
     await adminAuth.deleteUser(uid);
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("❌ Internal delete-user error:", err);
 
     return NextResponse.json(
-      { error: err.message || "Failed to delete user" },
+      {
+        error: err instanceof Error ? err.message : "Failed to delete user",
+      },
       { status: 500 }
     );
   }

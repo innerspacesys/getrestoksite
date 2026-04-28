@@ -1,8 +1,5 @@
 import { Resend } from "resend";
 
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 type SendEmailOptions = {
   to: string | string[];
   subject: string;
@@ -18,6 +15,14 @@ export function resolveNotificationEmail(user: {
   return user.notificationEmail || user.email || null;
 }
 
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
 export async function sendEmail({
   to,
   subject,
@@ -25,11 +30,8 @@ export async function sendEmail({
   text,
   from = "Restok <no-reply@getrestok.com>",
 }: SendEmailOptions) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
   try {
+    const resend = getResend();
     const { data, error } = await resend.emails.send({
       from,
       to,

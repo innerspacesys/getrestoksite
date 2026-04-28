@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useOrgStore } from "@/lib/orgStore";
+import type { User } from "firebase/auth";
+import { useOrgStore, type OrgItem } from "@/lib/orgStore";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +17,16 @@ import {
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
+type TimestampLike = {
+  toDate: () => Date;
+};
+
+type DashboardItem = OrgItem & {
+  name?: string;
+  daysLast?: number;
+  createdAt?: TimestampLike | null;
+};
+
 export default function DashboardHome() {
   const router = useRouter();
 
@@ -23,28 +34,27 @@ export default function DashboardHome() {
   // ⭐ Pull everything from global store
   // ------------------------------
  
+  const [user, setUser] = useState<User | null>(null);
 
-const [user, setUser] = useState<any>(null);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
 
-useEffect(() => {
-  const unsub = onAuthStateChanged(auth, (u) => {
-    setUser(u);
-  });
-
-  return () => unsub();
-}, []);
+    return () => unsub();
+  }, []);
 
   const items = useOrgStore((s) => s.items);
   const plan = useOrgStore((s) => s.plan);
   const loading = useOrgStore((s) => s.loading);
 
-  const [attentionItems, setAttentionItems] = useState<any[]>([]);
+  const [attentionItems, setAttentionItems] = useState<DashboardItem[]>([]);
   const [showAttentionModal, setShowAttentionModal] = useState(false);
 
   // ------------------------------
   // UTILITIES
   // ------------------------------
-  function needsAttention(item: any) {
+  function needsAttention(item: DashboardItem) {
     if (!item.createdAt?.toDate) return false;
 
     const created = item.createdAt.toDate();
@@ -52,19 +62,20 @@ useEffect(() => {
       (Date.now() - created.getTime()) / 86400000
     );
 
-    return item.daysLast - diffDays <= 3;
+    return (item.daysLast ?? 0) - diffDays <= 3;
   }
 
   const stats = useMemo(() => {
     let runningLow = 0;
     let dueToday = 0;
 
-    items.forEach((item: any) => {
-      if (!item.createdAt?.toDate) return;
+    items.forEach((item) => {
+      const dashboardItem = item as DashboardItem;
+      if (!dashboardItem.createdAt?.toDate) return;
 
-      const created = item.createdAt.toDate();
+      const created = dashboardItem.createdAt.toDate();
       const emptyDate = new Date(created);
-      emptyDate.setDate(emptyDate.getDate() + item.daysLast);
+      emptyDate.setDate(emptyDate.getDate() + (dashboardItem.daysLast ?? 0));
 
       const diffDays = Math.ceil(
         (emptyDate.getTime() - Date.now()) / 86400000
@@ -83,17 +94,18 @@ useEffect(() => {
 
   const graphData = useMemo(() => {
     return items
-      .map((item: any) => {
-        if (!item.createdAt?.toDate) return null;
+      .map((item) => {
+        const dashboardItem = item as DashboardItem;
+        if (!dashboardItem.createdAt?.toDate) return null;
 
-        const created = item.createdAt.toDate();
+        const created = dashboardItem.createdAt.toDate();
         const diff = Math.floor(
           (Date.now() - created.getTime()) / 86400000
         );
 
         return {
-          name: item.name,
-          daysLeft: Math.max(item.daysLast - diff, 0),
+          name: dashboardItem.name,
+          daysLeft: Math.max((dashboardItem.daysLast ?? 0) - diff, 0),
         };
       })
       .filter(Boolean);
@@ -114,7 +126,9 @@ useEffect(() => {
     const key = `restok_attention_dismissed_${user.uid}`;
     if (sessionStorage.getItem(key)) return;
 
-    const needs = items.filter(needsAttention);
+    const needs = items
+      .map((item) => item as DashboardItem)
+      .filter(needsAttention);
     if (!needs.length) return;
 
     setAttentionItems(needs);
@@ -153,40 +167,84 @@ const displayName =
   // ------------------------------
   return (
     <motion.main
-      className="flex-1 p-4 md:p-10"
+      className="mx-auto flex-1 max-w-6xl p-4 md:p-8"
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-2 text-slate-600 dark:text-slate-400">
-        Welcome back, {displayName}!
-      </p>
+      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+        <span className="eyebrow">Overview</span>
+        <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl">
+              Welcome back, {displayName}!
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              Keep an eye on the items that need attention and get ahead of
+              the next reorder cycle.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
+            <div className="font-semibold">Snapshot</div>
+            <div className="mt-1 text-sky-800/80 dark:text-sky-100/75">
+              {stats.runningLow} items may need attention soon.
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* STATS */}
-      <div className="grid md:grid-cols-3 gap-6 mt-10">
+      <div className="mt-8 grid gap-5 md:grid-cols-3">
         <Stat label="Total Items" value={stats.totalItems} tone="default" />
         <Stat label="Running Low" value={stats.runningLow} tone="amber" />
         <Stat label="Due Today" value={stats.dueToday} tone="red" />
       </div>
 
       {/* GRAPH */}
-      <div className="mt-10 bg-white dark:bg-slate-800 p-6 rounded-xl">
-  {graphData.length === 0 ? (
-    <p className="text-sm text-slate-500">
-      Add items to see your restock timeline.
-    </p>
-  ) : (
-    <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={graphData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Line dataKey="daysLeft" stroke="#0ea5e9" strokeWidth={3} />
-      </LineChart>
-    </ResponsiveContainer>
-  )}
-</div>
+      <div className="surface-card mt-8 rounded-[30px] p-6 md:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+              Restock timeline
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              A quick view of how many days are left before tracked items run low.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          {graphData.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
+              Add items to see your restock timeline.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={graphData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.28)" />
+                <XAxis dataKey="name" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "18px",
+                    border: "1px solid rgba(148,163,184,0.18)",
+                    background: "rgba(15,23,42,0.92)",
+                    color: "#e2e8f0",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="daysLeft"
+                  stroke="#0ea5e9"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#0ea5e9" }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
       {/* ATTENTION MODAL */}
       {showAttentionModal && (
@@ -198,7 +256,7 @@ const displayName =
           <motion.div
             initial={{ scale: 0.95, y: 10 }}
             animate={{ scale: 1, y: 0 }}
-            className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-lg"
+            className="surface-panel w-full max-w-lg rounded-[30px] p-6"
           >
             <h2 className="text-lg font-semibold">
               🔔 Take a look at these items
@@ -208,7 +266,7 @@ const displayName =
               {attentionItems.map((i) => (
                 <div
                   key={i.id}
-                  className="p-2 bg-slate-100 dark:bg-slate-700 rounded"
+                  className="rounded-2xl bg-slate-100 px-3 py-2 dark:bg-slate-700/80"
                 >
                   {i.name}
                 </div>
@@ -224,7 +282,7 @@ const displayName =
                   );
                   setShowAttentionModal(false);
                 }}
-                className="w-1/2 border rounded py-2"
+                className="button-secondary w-1/2 !rounded-2xl !px-4 !py-2"
               >
                 Later
               </button>
@@ -235,10 +293,10 @@ const displayName =
                     `restok_attention_dismissed_${user?.uid}`,
                     "true"
                   );
-                  const ids = attentionItems.map((i) => i.id).join(",");
+                  const ids = attentionItems.map((item) => item.id).join(",");
                   router.push(`/dashboard/restock?review=${ids}`);
                 }}
-                className="w-1/2 bg-sky-600 text-white rounded py-2"
+                className="button-primary w-1/2 !rounded-2xl !px-4 !py-2"
               >
                 Review items
               </button>
@@ -262,7 +320,7 @@ function Stat({
   value: number;
   tone?: "default" | "amber" | "red";
 }) {
-  let colorClass =
+  const colorClass =
     tone === "amber"
       ? "text-amber-500"
       : tone === "red"
@@ -270,9 +328,13 @@ function Stat({
       : "text-sky-500";
 
   return (
-    <div className="p-6 bg-white dark:bg-slate-800 rounded-xl">
-      <h3 className="text-slate-500 dark:text-slate-400">{label}</h3>
-      <p className={`text-4xl font-bold ${colorClass}`}>{value}</p>
+    <div className="surface-card rounded-[28px] p-6">
+      <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
+        {label}
+      </h3>
+      <p className={`mt-3 text-4xl font-bold tracking-tight ${colorClass}`}>
+        {value}
+      </p>
     </div>
   );
 }

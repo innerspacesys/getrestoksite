@@ -1,4 +1,8 @@
-export function buildPickupPdf(vendorGroups: Record<string, any[]>) {
+type PickupItem = {
+  name: string;
+};
+
+export function buildPickupPdf(vendorGroups: Record<string, PickupItem[]>) {
   return `
 <!DOCTYPE html>
 <html>
@@ -80,7 +84,7 @@ export function buildPickupPdf(vendorGroups: Record<string, any[]>) {
           <div class="box">
             ${list
               .map(
-                (item: any) => `
+                (item) => `
                 <div class="item">
                   <div class="row">
                     <div class="checkbox"></div>
