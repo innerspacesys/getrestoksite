@@ -98,21 +98,21 @@ export default function ContactPage() {
       </header>
 
       {/* ---------- CONTACT CONTENT ---------- */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
+      <section className="mx-auto max-w-7xl px-5 py-12 md:px-6 md:py-16">
         <div>
           <p className="text-slate-500">Restok Support</p>
-          <h1 className="text-4xl font-bold mt-1">Contact Us</h1>
-          <p className="text-slate-600 max-w-2xl mt-2">
+          <h1 className="mt-1 text-4xl font-bold">Contact Us</h1>
+          <p className="mt-2 max-w-2xl text-slate-600">
             Have a question, feedback, or need help? Send us a message and we’ll get back to you.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mt-10">
+        <div className="mt-10 grid gap-8 md:grid-cols-2">
 
           {/* FORM */}
-          <div className="bg-white dark:bg-slate-800 border rounded-2xl p-6 shadow">
+          <div className="rounded-2xl border bg-white p-5 shadow dark:bg-slate-800 md:p-6">
             <form onSubmit={submit}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="font-medium text-sm">Your name</label>
                   <input
@@ -133,7 +133,7 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="font-medium text-sm">
                     Business (optional)
@@ -182,10 +182,10 @@ export default function ContactPage() {
                 Please don’t include sensitive information.
               </p>
 
-              <div className="flex gap-3 mt-4">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <button
                   disabled={loading}
-                  className="bg-sky-600 text-white px-5 py-2 rounded-lg"
+                  className="rounded-lg bg-sky-600 px-5 py-2 text-white sm:min-w-[11rem]"
                 >
                   {loading ? "Sending…" : "Send message"}
                 </button>
@@ -201,7 +201,7 @@ export default function ContactPage() {
                     setErr("");
                     setOk("");
                   }}
-                  className="border px-5 py-2 rounded-lg"
+                  className="rounded-lg border px-5 py-2 sm:min-w-[7rem]"
                 >
                   Clear
                 </button>
@@ -222,7 +222,7 @@ export default function ContactPage() {
           </div>
 
           {/* SIDEBAR */}
-          <aside className="bg-white dark:bg-slate-800 border rounded-2xl p-6 shadow">
+          <aside className="rounded-2xl border bg-white p-5 shadow dark:bg-slate-800 md:p-6">
             <h2 className="font-semibold text-lg">Other ways to reach us</h2>
 
             <p className="mt-2 text-slate-600 dark:text-slate-300">

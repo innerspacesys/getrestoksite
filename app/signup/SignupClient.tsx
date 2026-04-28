@@ -80,21 +80,21 @@ const [selectedPlan, setSelectedPlan] =
   // UI
   // -----------------------------
   return (
-  <div className="min-h-screen bg-zinc-50 px-4 md:px-6 relative">
+  <div className="relative min-h-screen bg-zinc-50 px-4 pb-10 pt-5 md:px-6 md:pb-0 md:pt-0">
 
     {/* BACK TO HOME — PAGE LEVEL */}
     <Link
       href="/"
-      className="absolute top-6 left-6 text-sky-600 font-medium hover:underline z-10"
+      className="absolute left-4 top-5 z-10 text-sm font-medium text-sky-600 hover:underline md:left-6 md:top-6 md:text-base"
     >
       ← Back to Home
     </Link>
 
     {/* CENTERED SIGNUP CARD */}
-    <div className="min-h-screen flex items-center justify-center">
-    <div className="w-full max-w-md bg-white p-6 md:p-8 rounded-xl shadow">
+    <div className="flex min-h-screen items-start justify-center pt-16 md:items-center md:pt-0">
+    <div className="w-full max-w-md rounded-xl bg-white p-5 shadow md:p-8">
 
-        <h1 className="text-3xl font-bold text-center">
+        <h1 className="text-center text-2xl font-bold leading-tight text-slate-950 md:text-3xl">
           Create your account
         </h1>
 

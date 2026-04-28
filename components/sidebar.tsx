@@ -103,9 +103,9 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
     <>
       {/* ---------- SIDEBAR ---------- */}
       <aside
-        className="surface-panel flex h-full w-72 shrink-0 flex-col border-r border-white/40 p-4 md:p-5 dark:border-white/10"
+        className="surface-panel sticky top-0 flex h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-white/40 p-3 md:p-4 dark:border-white/10"
       >
-        <div className="mb-5 rounded-3xl border border-white/40 bg-white/55 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="mb-4 rounded-3xl border border-white/40 bg-white/55 p-3.5 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-sky-50 p-2.5 dark:bg-sky-950/50">
               <Image
@@ -119,7 +119,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
             <div>
               <motion.h1
-                className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+                className="text-base font-semibold text-slate-900 dark:text-slate-100"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
               >
@@ -132,8 +132,8 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-1">
-          <nav className="flex flex-col gap-1.5 text-slate-700 dark:text-slate-200">
+        <div className="flex-1">
+          <nav className="flex flex-col gap-1 text-slate-700 dark:text-slate-200">
             <NavItem href="/dashboard" label="Dashboard" emoji="📊" active={pathname === "/dashboard"} onClick={onNavigate} />
             <NavItem href="/dashboard/items" label="Items" emoji="📦" active={pathname === "/dashboard/items"} onClick={onNavigate} />
             <NavItem href="/dashboard/vendors" label="Vendors" emoji="🏪" active={pathname === "/dashboard/vendors"} onClick={onNavigate} />
@@ -146,9 +146,9 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
 
         {/* ---------- Bottom ---------- */}
-        <div className="mt-5 flex flex-col gap-3 border-t border-slate-200/70 pt-5 dark:border-slate-700/70">
+        <div className="mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/70">
           {/* PLAN */}
-          <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-4 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+          <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-3.5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 dark:text-slate-400">Current plan</span>
 
@@ -174,7 +174,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
                   (window.location.href =
                     "/dashboard/settings#billing")
                 }
-                className="button-primary mt-3 w-full !rounded-2xl !px-3 !py-2 text-xs shadow-none"
+                className="button-primary mt-2.5 w-full !rounded-2xl !px-3 !py-2 text-xs shadow-none"
               >
                 {plan === "basic" ? "Upgrade plan" : "Manage plan"}
               </button>
@@ -206,7 +206,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="rounded-2xl bg-rose-500 py-3 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
+            className="rounded-2xl bg-rose-500 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
           >
             Log Out
           </motion.button>
@@ -325,7 +325,7 @@ function NavItem({
       <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium ${
+      className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium ${
         active
           ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
           : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/80"

@@ -144,7 +144,7 @@ export default function UsersPage() {
 
   return (
     <motion.main
-      className="p-10 flex-1 max-w-5xl mx-auto"
+      className="mx-auto flex-1 max-w-5xl p-4 md:p-10"
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
@@ -203,7 +203,7 @@ export default function UsersPage() {
               : `${members.length} / ${memberLimit} seats`}
           </div>
 
-          <div className="mt-6 flex justify-between items-center">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">
               Organization Members
             </h2>
@@ -231,20 +231,20 @@ export default function UsersPage() {
             {members.map((m) => (
               <div
                 key={m.id}
-                className="p-4 rounded-xl border bg-white dark:bg-slate-800 flex justify-between items-center"
+                className="flex flex-col gap-3 rounded-xl border bg-white p-4 dark:bg-slate-800 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <div className="font-medium">{m.email}</div>
+                  <div className="break-all font-medium">{m.email}</div>
                   <div className="text-xs text-slate-500">
                     {m.role}
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 sm:justify-end">
                   {role === "owner" && m.role !== "owner" && (
                     <button
                       onClick={() => transferOwnership(m.id)}
-                      className="px-3 py-1 bg-amber-600 text-white rounded"
+                      className="rounded bg-amber-600 px-3 py-2 text-white sm:py-1"
                     >
                       Transfer
                     </button>
@@ -267,7 +267,7 @@ export default function UsersPage() {
                             isLastAdmin(m)
                               ? "bg-gray-500"
                               : "bg-purple-600 hover:bg-purple-700"
-                          }`}
+                          } sm:py-1 py-2`}
                         >
                           {m.role === "admin"
                             ? "Demote"
@@ -283,7 +283,7 @@ export default function UsersPage() {
                             isLastAdmin(m)
                               ? "bg-gray-500"
                               : "bg-red-600 hover:bg-red-700"
-                          }`}
+                          } sm:py-1 py-2`}
                         >
                           Remove
                         </button>
@@ -299,7 +299,7 @@ export default function UsersPage() {
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
               <form
                 onSubmit={createUser}
-                className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-md space-y-4"
+                className="mx-4 w-full max-w-md space-y-4 rounded-xl bg-white p-6 dark:bg-slate-800"
               >
                 <h2 className="text-lg font-semibold">
                   Invite New User

@@ -18,55 +18,35 @@ export default function BetaNotice() {
     <AnimatePresence>
       {show && (
         <motion.div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={acknowledge}   // clicking backdrop also dismisses
+          className="mx-3 mt-3 rounded-3xl border border-amber-200 bg-amber-50/95 px-4 py-4 text-slate-900 shadow-sm md:mx-6 md:px-5 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-50"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
         >
-          <motion.div
-            onClick={(e) => e.stopPropagation()}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-2xl space-y-4 shadow-2xl"
-          >
-            <h2 className="text-xl font-bold">
-              Restok Beta Notice
-            </h2>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                Restok Beta Notice
+              </h2>
 
-            <p className="text-sm leading-relaxed">
-              Restok is currently in a beta testing phase and is provided
-              for evaluation and feedback purposes only. Restok helps
-              businesses track and receive reminders for items they reorder
-              regularly. Restok does not sell products, process purchases,
-              or require you to use any specific vendor.
-            </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-amber-50/85">
+                Restok is currently in beta for evaluation and feedback. Features
+                may change, data may be reset, and availability is not guaranteed.
+                Restok provides reminders and organization tools only, so please
+                don&apos;t rely on it as your sole system for critical inventory decisions.
+              </p>
+            </div>
 
-            <ul className="text-sm list-disc pl-5 leading-relaxed">
-              <li>Features may change or be removed</li>
-              <li>Data may be reset</li>
-              <li>Availability and performance are not guaranteed</li>
-            </ul>
-
-            <p className="text-sm leading-relaxed">
-              Restok provides reminders and organizational tools only.
-              You are responsible for purchasing decisions, inventory
-              levels, and supplier relationships. Please do not rely
-              on Restok as your sole system for critical inventory
-              decisions during beta.
-            </p>
-
-            <div className="flex justify-end">
+            <div className="flex shrink-0">
               <button
                 onClick={acknowledge}
-                className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white"
+                className="rounded-2xl bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
               >
                 I Understand
               </button>
             </div>
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

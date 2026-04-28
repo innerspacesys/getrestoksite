@@ -22,7 +22,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [requireInstall, setRequireInstall] = useState(false);
+  const [showInstallHint, setShowInstallHint] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("restok-theme");
@@ -39,11 +39,11 @@ export default function DashboardLayout({
       const isStandalone =
         Boolean((window.navigator as NavigatorWithStandalone).standalone) ||
         isStandaloneDisplayMode();
-      const already = localStorage.getItem("restok_add_to_home_done");
+      const dismissed = localStorage.getItem("restok_install_hint_dismissed");
 
-      if (isiOS && !isStandalone && !already) {
+      if (isiOS && !isStandalone && !dismissed) {
         const frame = window.requestAnimationFrame(() => {
-          setRequireInstall(true);
+          setShowInstallHint(true);
         });
 
         const id = setInterval(() => {
@@ -51,8 +51,8 @@ export default function DashboardLayout({
             Boolean((window.navigator as NavigatorWithStandalone).standalone) ||
             isStandaloneDisplayMode();
           if (nowStandalone) {
-            localStorage.setItem("restok_add_to_home_done", "1");
-            setRequireInstall(false);
+            localStorage.setItem("restok_install_hint_dismissed", "1");
+            setShowInstallHint(false);
             clearInterval(id);
           }
         }, 1000);
@@ -81,6 +81,23 @@ export default function DashboardLayout({
 
     document.title = `${titles[pathname] || "Dashboard"} – Restok`;
   }, [pathname]);
+
+  const mobileTitleMap: Record<string, string> = {
+    "/dashboard": "Dashboard",
+    "/dashboard/items": "Items",
+    "/dashboard/vendors": "Vendors",
+    "/dashboard/locations": "Locations",
+    "/dashboard/restock": "Restock",
+    "/dashboard/reports": "Reports",
+    "/dashboard/settings": "Settings",
+    "/dashboard/users": "Users",
+  };
+  const mobileTitle = mobileTitleMap[pathname] || "Dashboard";
+
+  function dismissInstallHint() {
+    localStorage.setItem("restok_install_hint_dismissed", "1");
+    setShowInstallHint(false);
+  }
 
   return (
     <OrgLoader>
@@ -111,7 +128,7 @@ export default function DashboardLayout({
         {/* CONTENT */}
         <div className="flex-1 flex flex-col">
           {/* MOBILE TOP BAR */}
-          <div className="surface-panel md:hidden mx-3 mt-3 flex items-center gap-3 rounded-3xl px-4 py-3">
+          <div className="surface-panel mx-3 mt-3 flex items-center gap-3 rounded-3xl px-4 py-3 md:hidden">
             <button
               onClick={() => setOpen(true)}
               className="rounded-2xl bg-slate-100 px-3 py-2 text-xl dark:bg-slate-800"
@@ -122,35 +139,41 @@ export default function DashboardLayout({
             <div>
               <span className="block font-semibold">Restok</span>
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                Dashboard
+                {mobileTitle}
               </span>
             </div>
           </div>
 
           <BetaNotice />
-          {requireInstall ? (
-            <main className="flex-1 p-4 md:p-6" aria-hidden="true">{children}</main>
-          ) : (
-            <main className="flex-1 p-4 md:p-6">{children}</main>
-          )}
-        </div>
-
-        {requireInstall && (
-          <div className="fixed inset-0 z-[9999] bg-white/80 dark:bg-slate-950/85 flex items-center justify-center p-6 backdrop-blur-md">
-            <div className="surface-panel max-w-xl rounded-[32px] p-8 text-center">
-              <h2 className="text-2xl font-semibold mb-4">Add Restok to your Home Screen</h2>
-              <p className="mb-4 text-sm text-slate-700 dark:text-slate-300">
-                To continue using Restok on iPhone, open Safari&apos;s Share
-                menu and choose &quot;Add to Home Screen&quot;. You will need
-                to use the home screen app to use Restok on iOS.
+          {showInstallHint && (
+            <div className="mx-3 mt-3 rounded-3xl border border-sky-200 bg-sky-50/95 px-4 py-4 text-sm text-sky-950 shadow-sm md:hidden dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-100">
+              <div className="font-semibold">Add Restok to your Home Screen</div>
+              <p className="mt-1 text-sky-900/80 dark:text-sky-100/80">
+                For the best iPhone experience, open Safari&apos;s Share menu
+                and choose &quot;Add to Home Screen&quot;. You can still keep
+                using Restok in the browser for now.
               </p>
-              <div className="flex items-center justify-center gap-3 mt-4">
-                
-                 
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={dismissInstallHint}
+                  className="rounded-2xl bg-sky-600 px-3 py-2 text-white"
+                >
+                  Continue in Browser
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissInstallHint}
+                  className="rounded-2xl border border-sky-300 px-3 py-2 text-sky-900 dark:border-sky-700 dark:text-sky-100"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </div>
       </div>
     </OrgLoader>
   );
