@@ -104,6 +104,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
     <>
       {/* ---------- SIDEBAR ---------- */}
       <aside
+        data-onboarding-scope="sidebar"
         className="surface-panel sticky top-0 flex h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-white/40 p-3 md:p-4 dark:border-white/10"
       >
         <div className="mb-4 rounded-3xl border border-white/40 bg-white/55 p-3.5 shadow-sm dark:border-white/10 dark:bg-slate-900/60">

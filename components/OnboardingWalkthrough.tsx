@@ -152,6 +152,7 @@ export default function OnboardingWalkthrough() {
     }
 
     let highlightedTarget: HTMLElement | null = null;
+    let highlightedScope: HTMLElement | null = null;
 
     function updateRect() {
       const target = document.querySelector<HTMLElement>(
@@ -161,6 +162,13 @@ export default function OnboardingWalkthrough() {
       if (!target) {
         setTargetRect(null);
         return;
+      }
+
+      const scope = target.closest<HTMLElement>("[data-onboarding-scope]");
+      if (highlightedScope !== scope) {
+        highlightedScope?.removeAttribute("data-onboarding-active-scope");
+        scope?.setAttribute("data-onboarding-active-scope", "true");
+        highlightedScope = scope;
       }
 
       if (highlightedTarget !== target) {
@@ -184,6 +192,7 @@ export default function OnboardingWalkthrough() {
 
     return () => {
       highlightedTarget?.removeAttribute("data-onboarding-active-target");
+      highlightedScope?.removeAttribute("data-onboarding-active-scope");
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
     };
