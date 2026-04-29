@@ -67,6 +67,12 @@ select {
     transform 0.2s ease;
 }
 
+[data-onboarding-active-target="true"] {
+  position: relative;
+  z-index: 80;
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.95);
+}
+
 button {
   cursor: pointer;
 }

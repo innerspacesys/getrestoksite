@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import UpdateNotifier from "@/components/UpdateNotifier";
+import { getPublicAppMeta } from "@/lib/appMeta";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,12 +35,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const appMeta = getPublicAppMeta();
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         {children}
+        <UpdateNotifier
+          initialVersion={appMeta.version}
+          initialSignature={appMeta.deploymentSignature}
+        />
       </body>
     </html>
   );

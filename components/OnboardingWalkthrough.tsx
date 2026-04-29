@@ -151,6 +151,8 @@ export default function OnboardingWalkthrough() {
       return () => window.cancelAnimationFrame(frame);
     }
 
+    let highlightedTarget: HTMLElement | null = null;
+
     function updateRect() {
       const target = document.querySelector<HTMLElement>(
         `[data-onboarding-target="${currentStep.target}"]`
@@ -159,6 +161,12 @@ export default function OnboardingWalkthrough() {
       if (!target) {
         setTargetRect(null);
         return;
+      }
+
+      if (highlightedTarget !== target) {
+        highlightedTarget?.removeAttribute("data-onboarding-active-target");
+        target.setAttribute("data-onboarding-active-target", "true");
+        highlightedTarget = target;
       }
 
       const rect = target.getBoundingClientRect();
@@ -175,6 +183,7 @@ export default function OnboardingWalkthrough() {
     window.addEventListener("scroll", updateRect, true);
 
     return () => {
+      highlightedTarget?.removeAttribute("data-onboarding-active-target");
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
     };
@@ -217,7 +226,7 @@ export default function OnboardingWalkthrough() {
 
       {targetRect && (
         <div
-          className="absolute rounded-[26px] border-2 border-sky-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.58)] transition-all duration-200"
+          className="pointer-events-none absolute rounded-[26px] border-2 border-sky-300 transition-all duration-200"
           style={targetRect}
         />
       )}

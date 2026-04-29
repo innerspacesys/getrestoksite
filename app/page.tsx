@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
+import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
 import { onAuthStateChanged } from "firebase/auth";
 
 type RevealProps = {
@@ -171,6 +172,12 @@ export default function Home() {
             <a href="#pricing" className="hover:text-slate-900">
               Pricing
             </a>
+            <Link href="/help" className="hover:text-slate-900">
+              Help
+            </Link>
+            <Link href="/changelog" className="hover:text-slate-900">
+              Changelog
+            </Link>
             <Link href="/terms" className="hover:text-slate-900">
               Terms
             </Link>
@@ -233,6 +240,12 @@ export default function Home() {
               <a href="#pricing" className="block py-2">
                 Pricing
               </a>
+              <Link href="/help" className="block py-2">
+                Help
+              </Link>
+              <Link href="/changelog" className="block py-2">
+                Changelog
+              </Link>
               <Link href="/terms" className="block py-2">
                 Terms
               </Link>
@@ -519,6 +532,12 @@ export default function Home() {
                   <a href="#pricing">Pricing</a>
                 </li>
                 <li>
+                  <Link href="/help">Help</Link>
+                </li>
+                <li>
+                  <Link href="/changelog">Changelog</Link>
+                </li>
+                <li>
                   <Link href="/terms">Terms and Policies</Link>
                 </li>
               </ul>
@@ -539,7 +558,7 @@ export default function Home() {
           <div className="mx-auto mt-8 max-w-7xl px-6 text-center text-xs text-slate-400">
             © 2026{" "}
             <a href="https://www.issioffice.com">Inner Space Systems Inc.</a> —
-            All rights reserved
+            All rights reserved • {APP_DISPLAY_VERSION}
           </div>
         </footer>
       </Reveal>

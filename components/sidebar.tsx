@@ -8,6 +8,7 @@ import ThemeToggle from "./ThemeToggle";
 import { auth, db } from "../lib/firebase";
 import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
+import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
 
 type Plan = "basic" | "pro" | "premium" | "enterprise";
 
@@ -211,6 +212,10 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           >
             Log Out
           </motion.button>
+
+          <div className="pt-1 text-center text-[11px] uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+            {APP_DISPLAY_VERSION}
+          </div>
         </div>
       </aside>
 
