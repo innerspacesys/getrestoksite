@@ -90,7 +90,7 @@ export default function SetPasswordForm() {
   // --------------------------
   if (validating) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-600">
+      <div className="flex min-h-screen items-center justify-center px-4 text-slate-600 dark:text-slate-300">
         Validating secure link…
       </div>
     );
@@ -101,16 +101,16 @@ export default function SetPasswordForm() {
   // --------------------------
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="bg-white p-8 rounded-xl shadow max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold">Link expired</h1>
-          <p className="text-slate-600 mt-2 text-sm">
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="surface-panel w-full max-w-md rounded-[30px] p-8 text-center">
+          <h1 className="text-2xl font-bold text-slate-950 dark:text-slate-50">Link expired</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             This password setup link is invalid or has expired.
           </p>
 
           <Link
             href="/login"
-            className="inline-block mt-6 bg-sky-600 text-white px-6 py-3 rounded-lg"
+            className="button-primary mt-6 !rounded-2xl !px-6 !py-3"
           >
             Go to Login
           </Link>
@@ -120,27 +120,31 @@ export default function SetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.18),transparent_40%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.12),transparent_30%),linear-gradient(180deg,rgba(2,6,23,0.16),transparent_36%)]" />
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 md:p-8 rounded-xl shadow max-w-md w-full"
+        className="surface-panel w-full max-w-md rounded-[30px] p-6 md:p-8"
       >
-        <h1 className="text-2xl font-bold text-center">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-3xl bg-sky-100 text-2xl dark:bg-sky-950/50">
+          🔑
+        </div>
+        <h1 className="text-center text-2xl font-bold text-slate-950 dark:text-slate-50">
           Set your password
         </h1>
 
-        <p className="text-sm text-slate-500 text-center mt-2">
+        <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
           Finish setting up your Restok account
         </p>
 
         {error && (
-          <div className="mt-4 text-sm bg-red-100 text-red-700 p-2 rounded">
+          <div className="mt-4 rounded-2xl bg-red-100 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mt-4 text-sm bg-green-100 text-green-700 p-2 rounded">
+          <div className="mt-4 rounded-2xl bg-green-100 p-3 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-200">
             Password saved. Redirecting…
           </div>
         )}
@@ -164,13 +168,13 @@ export default function SetPasswordForm() {
           className="input mt-3"
         />
 
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           Password must be at least 6 characters.
         </p>
 
         <button
           disabled={loading}
-          className="mt-4 w-full bg-sky-600 text-white py-3 rounded-lg disabled:bg-slate-400"
+          className="button-primary mt-4 w-full !rounded-2xl !py-3 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Saving..." : "Set Password"}
         </button>

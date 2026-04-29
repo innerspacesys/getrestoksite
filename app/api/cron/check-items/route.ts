@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Resend } from "resend";
 import { Timestamp } from "firebase-admin/firestore";
-import { resolveNotificationEmail } from "@/lib/email";
-
-function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
-  return new Resend(process.env.RESEND_API_KEY);
-}
+import { resolveNotificationEmail, sendEmail } from "@/lib/email";
+import { buildStockAlertEmail } from "@/lib/emailTemplates";
 
 export async function GET() {
   const now = new Date();
   let emailsSent = 0;
-  const resend = getResend();
 
   const usersSnap = await adminDb.collection("users").get();
 
@@ -23,12 +14,23 @@ export async function GET() {
     const user = userDoc.data();
 
     if (!user?.email || !user?.orgId) continue;
+    if (user.emailNotifications === false || user.lowStockAlerts === false) {
+      continue;
+    }
 
-    const itemsSnap = await adminDb
-      .collection("organizations")
-      .doc(user.orgId)
-      .collection("items")
-      .get();
+    const orgRef = adminDb.collection("organizations").doc(user.orgId);
+    const orgSnap = await orgRef.get();
+    const org = orgSnap.data();
+
+    if (org?.active === false) continue;
+
+    const itemsSnap = await orgRef.collection("items").get();
+    const vendorsSnap = await orgRef.collection("vendors").get();
+    const locationsSnap = await orgRef.collection("locations").get();
+    const vendors = new Map(vendorsSnap.docs.map((doc) => [doc.id, doc.data()]));
+    const locations = new Map(
+      locationsSnap.docs.map((doc) => [doc.id, doc.data()])
+    );
 
     for (const itemDoc of itemsSnap.docs) {
       try {
@@ -53,100 +55,37 @@ export async function GET() {
         //   if (hoursSince < 24) continue;
         // }
 
-        const subject =
-          daysLeft <= 0
-            ? `🚨 ${item.name} may be OUT`
-            : `⚠️ ${item.name} may be running low`;
-
-        const html = `
-<!DOCTYPE html>
-<html>
-  <body style="margin:0; padding:0; background-color:#f1f5f9;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:32px 0;">
-      <tr>
-        <td align="center">
-          <table width="520" cellpadding="0" cellspacing="0"
-            style="background-color:#ffffff; border-radius:12px; padding:24px;
-              font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-              box-shadow:0 10px 25px rgba(0,0,0,0.06);">
-            <tr><td>
-
-              <div style="text-align:center; margin-bottom:20px;">
-                <img src="https://getrestok.com/logo.png"
-                  alt="Restok" width="120"
-                  style="display:block; margin:0 auto;" />
-              </div>
-
-              <h1 style="margin:0 0 8px 0; font-size:22px; color:#0f172a;">
-                ${daysLeft <= 0 ? "🚨 Item May Be Out of Stock" : "⚠️ Item May Be Running Low"}
-              </h1>
-
-              <p style="margin:0 0 20px 0; font-size:15px; color:#475569;">
-                This is a restock alert from <strong>Restok</strong>.
-              </p>
-
-              <table width="100%" cellpadding="0" cellspacing="0"
-                style="
-                  background-color:${daysLeft <= 0 ? "#fee2e2" : "#fef3c7"};
-                  border:1px solid ${daysLeft <= 0 ? "#fecaca" : "#fde68a"};
-                  border-radius:10px;
-                  padding:16px;
-                  margin-bottom:20px;">
-                <tr><td>
-
-                  <p style="margin:0; font-size:16px; font-weight:600; color:#0f172a;">
-                    ${item.name}
-                  </p>
-
-                  <p style="margin:6px 0 0 0; font-size:14px; color:#7c2d12;">
-                    ${
-                      daysLeft <= 0
-                        ? "This item may have run out and may need restocking."
-                        : `This item may run out in <strong>${daysLeft} days</strong>.`
-                    }
-                  </p>
-
-                </td></tr>
-              </table>
-
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr><td align="center">
-                  <a href="https://getrestok.com/dashboard/restock"
-                    style="display:inline-block; width:100%; background-color:#0ea5e9;
-                      color:#ffffff; text-decoration:none; padding:14px 0;
-                      border-radius:8px; font-weight:600; font-size:15px;
-                      text-align:center;">
-                    Review & Restock Items
-                  </a>
-                </td></tr>
-              </table>
-
-              <p style="margin-top:20px; font-size:12px; color:#64748b; text-align:center;">
-                You’re receiving this email because you use Restok to track items you rely on.<br/>
-                © ${new Date().getFullYear()} Restok
-              </p>
-
-            </td></tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>
-        `;
+        const vendor =
+          item.vendorId && typeof item.vendorId === "string"
+            ? vendors.get(item.vendorId)
+            : null;
+        const location =
+          item.locationId && typeof item.locationId === "string"
+            ? locations.get(item.locationId)
+            : null;
+        const message = buildStockAlertEmail({
+          itemName: item.name,
+          daysLeft,
+          orgName: org?.name || null,
+          vendorName:
+            vendor && typeof vendor.name === "string" ? vendor.name : null,
+          locationName:
+            location && typeof location.name === "string" ? location.name : null,
+        });
 
         const to = resolveNotificationEmail(user);
 
-if (!to) {
-  console.warn("Skipping user with no notification email", userDoc.id);
-  continue;
-}
+        if (!to) {
+          console.warn("Skipping user with no notification email", userDoc.id);
+          continue;
+        }
 
-        await resend.emails.send({
+        await sendEmail({
           from: "Restok <alerts@getrestok.com>",
           to,
-          subject,
-          html,
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
         });
 
         await itemDoc.ref.update({

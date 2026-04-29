@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar";
-import BetaNotice from "@/components/BetaNotice";
 import OrgLoader from "./OrgLoader";
 import { motion } from "framer-motion";
 
@@ -25,9 +24,15 @@ export default function DashboardLayout({
   const [showInstallHint, setShowInstallHint] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("restok-theme");
+    const saved =
+      localStorage.getItem("theme") || localStorage.getItem("restok-theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = saved === "dark" || (!saved && prefersDark);
+
+    if (saved) {
+      localStorage.setItem("theme", saved);
+      localStorage.removeItem("restok-theme");
+    }
 
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
@@ -143,8 +148,6 @@ export default function DashboardLayout({
               </span>
             </div>
           </div>
-
-          <BetaNotice />
           {showInstallHint && (
             <div className="mx-3 mt-3 rounded-3xl border border-sky-200 bg-sky-50/95 px-4 py-4 text-sm text-sky-950 shadow-sm md:hidden dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-100">
               <div className="font-semibold">Add Restok to your Home Screen</div>

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email";
+import {
+  buildSupportConfirmationEmail,
+  buildSupportNotificationEmail,
+} from "@/lib/emailTemplates";
 
 // CHANGE THESE
 const SUPPORT_TO = "support@getrestok.com";
@@ -24,14 +28,6 @@ type EmailAttachment = {
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json(
-        { error: "Email is not configured" },
-        { status: 500 }
-      );
-    }
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
     const form = await request.formData();
 
     const metadata = JSON.parse(
@@ -52,30 +48,37 @@ export async function POST(request: Request) {
       });
     }
 
-    const html = `
-      <h2>New Support Request</h2>
+    const internalMessage = buildSupportNotificationEmail({
+      subject,
+      message,
+      metadata,
+    });
 
-      <p><strong>Subject:</strong> ${subject}</p>
-      <p>${message.replace(/\n/g, "<br>")}</p>
-
-      <hr>
-
-      <h3>User Info</h3>
-      <p><strong>Name:</strong> ${metadata?.name}</p>
-      <p><strong>Email:</strong> ${metadata?.email}</p>
-      <p><strong>Org:</strong> ${metadata?.orgName}</p>
-      <p><strong>Plan:</strong> ${metadata?.plan}</p>
-      <p><strong>UID:</strong> ${metadata?.uid}</p>
-    `;
-
-    await resend.emails.send({
+    await sendEmail({
       from: "Restok Support <support@getrestok.com>",
       to: SUPPORT_TO,
       bcc: BCC,
-      subject: `Support — ${subject}`,
-      html,
+      subject: internalMessage.subject,
+      html: internalMessage.html,
+      text: internalMessage.text,
       attachments,
     });
+
+    if (metadata.email) {
+      const confirmation = buildSupportConfirmationEmail({
+        subject,
+        metadata,
+      });
+
+      await sendEmail({
+        from: "Restok <support@getrestok.com>",
+        to: metadata.email,
+        subject: confirmation.subject,
+        html: confirmation.html,
+        text: confirmation.text,
+        replyTo: SUPPORT_TO,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

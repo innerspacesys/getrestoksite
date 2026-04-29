@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { Resend } from "resend";
-
-function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
-  return new Resend(process.env.RESEND_API_KEY);
-}
+import { sendEmail } from "@/lib/email";
+import { buildInboundForwardEmail } from "@/lib/emailTemplates";
 
 function verifySignature(rawBody: string, signature: string) {
   const signingSecret = process.env.RESEND_EMAIL_FORWARD_WEBHOOK_SECRET;
@@ -54,11 +47,19 @@ export async function POST(req: Request) {
 
     const email = event.data;
 
-    await getResend().emails.send({
+    const message = buildInboundForwardEmail({
+      from: email.from,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    });
+
+    await sendEmail({
       from: "Restok Support <support@getrestok.com>",
       to: "braden@issioffice.com",
-      subject: `FWD: ${email.subject || "No subject"}`,
-      html: email.html || `<pre>${email.text || ""}</pre>`,
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
       replyTo: email.from,
     });
 

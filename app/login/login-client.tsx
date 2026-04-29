@@ -37,17 +37,23 @@ export default function LoginClient() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 md:p-6 relative">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-10 md:px-6">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.18),transparent_40%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.12),transparent_30%),linear-gradient(180deg,rgba(2,6,23,0.16),transparent_36%)]" />
       <Link
         href="/"
-        className="absolute top-4 left-4 md:top-6 md:left-6 text-sky-600 font-medium hover:underline"
+        className="absolute left-4 top-4 text-sm font-medium text-sky-600 hover:underline dark:text-sky-300 md:left-6 md:top-6 md:text-base"
       >
         ← Back to Home
       </Link>
 
-      <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-center">Log in</h1>
-        <p className="text-slate-500 text-center mt-2">
+      <div className="surface-panel w-full max-w-md rounded-[30px] p-6 md:p-8">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-3xl bg-sky-100 text-2xl dark:bg-sky-950/50">
+          🔐
+        </div>
+        <h1 className="text-center text-2xl font-bold text-slate-950 dark:text-slate-50">
+          Log in
+        </h1>
+        <p className="mt-2 text-center text-slate-500 dark:text-slate-400">
           Access your Restok account
         </p>
 
@@ -63,14 +69,14 @@ export default function LoginClient() {
         )}
 
         {error && (
-          <p className="text-red-600 text-center mt-3 bg-red-50 p-2 rounded">
+          <p className="mt-3 rounded-2xl bg-red-50 p-3 text-center text-red-600 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </p>
         )}
 
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <div>
-            <label className="text-sm text-slate-600">Email</label>
+            <label className="text-sm text-slate-600 dark:text-slate-300">Email</label>
             <input
               type="email"
               className="input"
@@ -81,7 +87,7 @@ export default function LoginClient() {
           </div>
 
           <div>
-            <label className="text-sm text-slate-600">Password</label>
+            <label className="text-sm text-slate-600 dark:text-slate-300">Password</label>
             <input
               type="password"
               className="input"
@@ -94,15 +100,15 @@ export default function LoginClient() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-sky-600 text-white p-3 rounded-lg font-medium hover:opacity-95"
+            className="button-primary w-full !rounded-2xl !py-3"
           >
             {loading ? "Logging in..." : "Log in"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-slate-500 mt-4">
+        <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Don’t have an account?
-          <Link href="/signup" className="text-sky-600 ml-1">
+          <Link href="/signup" className="ml-1 text-sky-600 dark:text-sky-300">
             Sign up
           </Link>
         </p>

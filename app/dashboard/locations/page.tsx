@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOrgData } from "@/lib/useOrgData";
+import { PLANS } from "@/lib/plans";
 
 type LocationDoc = {
   id: string;
@@ -117,8 +118,15 @@ export default function LocationsPage() {
   // --------------------------
   // PLAN LOGIC
   // --------------------------
-  const isPremium = plan === "premium" || plan === "enterprise";
-  const atLimit = !isPremium && locations.length >= 1;
+  const planKey =
+    plan === "pro" || plan === "premium" || plan === "enterprise"
+      ? plan
+      : "basic";
+  const planConfig = PLANS[planKey];
+  const locationLimit =
+    "limits" in planConfig ? planConfig.limits.locations : Infinity;
+  const atLimit =
+    locationLimit !== Infinity && locations.length >= locationLimit;
 
   return (
     <motion.main
@@ -142,9 +150,7 @@ export default function LocationsPage() {
         <button
           onClick={() => {
             if (atLimit) {
-              alert(
-                "Multiple locations are only available on Premium & Enterprise plans."
-              );
+              alert("You've reached the location limit for your current plan.");
               return;
             }
             setShowModal(true);
@@ -160,11 +166,13 @@ export default function LocationsPage() {
       </div>
 
       {/* UPGRADE NOTICE */}
-      {!isPremium && locations.length >= 1 && (
+      {atLimit && locationLimit !== Infinity && (
         <div className="mt-4 p-4 rounded-xl border bg-amber-50 dark:bg-slate-800 dark:border-slate-700">
           <strong>Want to add more locations?</strong>
           <p className="text-sm mt-1 text-slate-600 dark:text-slate-400">
-            Upgrade to Premium or Enterprise to unlock unlimited locations.
+            Your <strong>{planConfig.name}</strong> plan includes{" "}
+            {locationLimit} location{locationLimit === 1 ? "" : "s"}.
+            Upgrade for more.
           </p>
 
           <button

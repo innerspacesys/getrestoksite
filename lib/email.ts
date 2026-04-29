@@ -6,6 +6,12 @@ type SendEmailOptions = {
   html: string;
   text?: string;
   from?: string;
+  bcc?: string | string[];
+  replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+  }>;
 };
 
 export function resolveNotificationEmail(user: {
@@ -29,15 +35,21 @@ export async function sendEmail({
   html,
   text,
   from = "Restok <no-reply@getrestok.com>",
+  bcc,
+  replyTo,
+  attachments,
 }: SendEmailOptions) {
   try {
     const resend = getResend();
     const { data, error } = await resend.emails.send({
       from,
       to,
+      bcc,
+      replyTo,
       subject,
       html,
       text,
+      attachments,
     });
 
     if (error) {

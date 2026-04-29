@@ -56,7 +56,7 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="antialiased bg-white text-slate-800">
+    <main className="min-h-screen antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
 
       {/* ---------- HEADER (same as landing) ---------- */}
       <header className="border-b py-4 sticky top-0 bg-white/90 z-50 dark:bg-slate-900/90 backdrop-blur">
@@ -81,11 +81,11 @@ export default function ContactPage() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#features" className="hover:text-slate-900">Features</Link>
-            <Link href="/#how" className="hover:text-slate-900">How it works</Link>
-            <Link href="/#pricing" className="hover:text-slate-900">Pricing</Link>
-            <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+          <nav className="hidden items-center gap-6 text-sm md:flex">
+            <Link href="/#features" className="hover:text-slate-900 dark:hover:text-white">Features</Link>
+            <Link href="/#how" className="hover:text-slate-900 dark:hover:text-white">How it works</Link>
+            <Link href="/#pricing" className="hover:text-slate-900 dark:hover:text-white">Pricing</Link>
+            <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white">Terms</Link>
             <Link href="/login" className="text-sky-600 font-medium">Log in</Link>
             <Link
               href="/signup"
@@ -100,9 +100,9 @@ export default function ContactPage() {
       {/* ---------- CONTACT CONTENT ---------- */}
       <section className="mx-auto max-w-7xl px-5 py-12 md:px-6 md:py-16">
         <div>
-          <p className="text-slate-500">Restok Support</p>
+          <p className="text-slate-500 dark:text-slate-400">Restok Support</p>
           <h1 className="mt-1 text-4xl font-bold">Contact Us</h1>
-          <p className="mt-2 max-w-2xl text-slate-600">
+          <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
             Have a question, feedback, or need help? Send us a message and we’ll get back to you.
           </p>
         </div>
@@ -262,8 +262,8 @@ export default function ContactPage() {
       </section>
 
       {/* ---------- FOOTER (same as landing) ---------- */}
-      <footer className="border-t py-8 mt-16">
-        <div className="mx-auto max-w-7xl px-6 grid md:grid-cols-3 gap-6 text-sm text-slate-600">
+      <footer className="mt-16 border-t border-slate-200/80 py-8 dark:border-slate-800">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 text-sm text-slate-600 dark:text-slate-300 md:grid-cols-3">
           <div>
             <div className="font-semibold">Restok</div>
             <div className="mt-2">

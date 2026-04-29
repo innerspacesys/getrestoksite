@@ -5,7 +5,16 @@ import { useState } from "react";
 export default function ThemeToggle() {
   const [dark, setDark] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("theme") === "dark";
+    const saved =
+      localStorage.getItem("theme") || localStorage.getItem("restok-theme");
+
+    if (saved === "dark" || saved === "light") {
+      localStorage.setItem("theme", saved);
+      localStorage.removeItem("restok-theme");
+      return saved === "dark";
+    }
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
   function toggle() {
@@ -14,6 +23,7 @@ export default function ThemeToggle() {
 
     document.documentElement.classList.toggle("dark", newDark);
     localStorage.setItem("theme", newDark ? "dark" : "light");
+    localStorage.removeItem("restok-theme");
   }
 
   return (

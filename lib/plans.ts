@@ -18,7 +18,7 @@ export const PLANS = {
     limits: {
       items: 10,
       users: 2,
-      locations: 1,
+      locations: 2,
     },
   },
   premium: {

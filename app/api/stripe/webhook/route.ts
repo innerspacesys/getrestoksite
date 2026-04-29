@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import { Resend } from "resend";
 import crypto from "crypto";
+import { sendEmail } from "@/lib/email";
+import { buildPasswordSetupEmail } from "@/lib/emailTemplates";
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -25,14 +26,6 @@ function normalizePlan(
   if (v.includes("premium")) return "premium";
   if (v.includes("pro")) return "pro";
   return "basic";
-}
-
-function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
-  return new Resend(process.env.RESEND_API_KEY);
 }
 
 export async function POST(req: Request) {
@@ -126,11 +119,18 @@ export async function POST(req: Request) {
 
     const setupUrl = `https://getrestok.com/set-password?token=${token}`;
 
-    await getResend().emails.send({
+    const message = buildPasswordSetupEmail({
+      recipientName: name,
+      setupUrl,
+      orgName: orgName || name || "My Organization",
+    });
+
+    await sendEmail({
       from: "Restok <accounts@getrestok.com>",
       to: email,
-      subject: "Set your Restok password",
-      html: buildPasswordEmail(setupUrl),
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
     });
 
     await pendingRef.delete();
@@ -194,30 +194,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true });
-}
-
-// =================================================================
-// EMAIL TEMPLATE
-// =================================================================
-function buildPasswordEmail(setupUrl: string) {
-  return `
-<!DOCTYPE html>
-<html>
-<body style="background:#f1f5f9;padding:40px;font-family:Arial,sans-serif;">
-  <table align="center" width="100%" style="max-width:520px;background:#fff;border-radius:14px;padding:32px;">
-    <tr><td align="center">
-      <img src="https://getrestok.com/logo.png" width="48" />
-      <h1>Set your password</h1>
-      <p>Your Restok account has been created.</p>
-      <a href="${setupUrl}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:14px 22px;border-radius:10px;text-decoration:none;">
-        Set Password
-      </a>
-      <p style="font-size:12px;color:#64748b;margin-top:24px;">
-        This link expires in 24 hours.
-      </p>
-    </td></tr>
-  </table>
-</body>
-</html>
-`;
 }

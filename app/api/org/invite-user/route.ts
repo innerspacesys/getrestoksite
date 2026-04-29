@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import crypto from "crypto";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email";
+import { buildPasswordSetupEmail } from "@/lib/emailTemplates";
 
 // PLANS — matches UI
 const PLAN_LIMITS: Record<string, number | "infinite"> = {
@@ -11,14 +12,6 @@ const PLAN_LIMITS: Record<string, number | "infinite"> = {
   premium: "infinite",
   enterprise: "infinite",
 };
-
-function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
-  return new Resend(process.env.RESEND_API_KEY);
-}
 
 export async function POST(req: Request) {
   try {
@@ -157,11 +150,18 @@ export async function POST(req: Request) {
     // ---------------------------
     // SEND EMAIL
     // ---------------------------
-    await getResend().emails.send({
+    const message = buildPasswordSetupEmail({
+      setupUrl,
+      orgName: org.name || "an organization",
+      invited: true,
+    });
+
+    await sendEmail({
       from: "Restok <accounts@getrestok.com>",
       to: email,
-      subject: `You've been invited to join ${org.name} on Restok`,
-      html: buildInviteEmail(org.name || "an organization", setupUrl),
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
     });
 
     // ---------------------------
@@ -185,28 +185,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
-
-// ---------------------------
-// EMAIL TEMPLATE
-// ---------------------------
-function buildInviteEmail(orgName: string, url: string) {
-  return `
-  <body style="background:#f1f5f9;padding:40px;font-family:Arial,sans-serif;">
-  <table align="center" width="100%" style="max-width:520px;background:#fff;border-radius:14px;padding:32px;">
-    <tr><td align="center">
-      <img src="https://getrestok.com/logo.png" width="48" />
-      <h1>You're invited to Restok</h1>
-      <p>${orgName} has added you to their Restok account.</p>
-
-      <a href="${url}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:14px 22px;border-radius:10px;text-decoration:none;">
-        Set your password
-      </a>
-
-      <p style="font-size:12px;color:#64748b;margin-top:24px;">
-        This link expires in 24 hours.
-      </p>
-    </td></tr>
-  </table>
-</body>`;
 }

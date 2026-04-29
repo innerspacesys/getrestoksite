@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function AboutPage() {
   return (
-    <main className="antialiased text-slate-800 bg-white">
+    <main className="min-h-screen antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
 
       {/* NAV */}
       <motion.header
@@ -36,11 +36,11 @@ export default function AboutPage() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#features" className="hover:text-slate-900">Features</Link>
-            <Link href="/#how" className="hover:text-slate-900">How it works</Link>
-            <Link href="/#pricing" className="hover:text-slate-900">Pricing</Link>
-            <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+          <nav className="hidden items-center gap-6 text-sm md:flex">
+            <Link href="/#features" className="hover:text-slate-900 dark:hover:text-white">Features</Link>
+            <Link href="/#how" className="hover:text-slate-900 dark:hover:text-white">How it works</Link>
+            <Link href="/#pricing" className="hover:text-slate-900 dark:hover:text-white">Pricing</Link>
+            <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white">Terms</Link>
             <Link href="/login" className="text-sky-600 font-medium">Log in</Link>
             <Link
               href="/signup"
@@ -60,10 +60,10 @@ export default function AboutPage() {
           transition={{ duration: 0.6 }}
           className="max-w-3xl"
         >
-          <p className="text-slate-500">About Restok™</p>
+          <p className="text-slate-500 dark:text-slate-400">About Restok™</p>
           <h1 className="text-4xl font-bold mt-1">Our Story</h1>
 
-          <div className="mt-6 space-y-5 text-slate-700 leading-relaxed">
+          <div className="mt-6 space-y-5 leading-relaxed text-slate-700 dark:text-slate-300">
 
             <p>
               Restok™ was created by Inner Space Systems, Inc. (ISSI) to solve a simple,
@@ -99,8 +99,8 @@ export default function AboutPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t py-8 mt-16">
-        <div className="mx-auto max-w-7xl px-6 grid md:grid-cols-3 gap-6 text-sm text-slate-600">
+      <footer className="mt-16 border-t border-slate-200/80 py-8 dark:border-slate-800">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 text-sm text-slate-600 dark:text-slate-300 md:grid-cols-3">
           <div>
             <div className="font-semibold">Restok</div>
             <div className="mt-2">Smart restock reminders for small businesses.</div>

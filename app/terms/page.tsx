@@ -356,7 +356,7 @@ export default function TermsPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <main className="antialiased bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col">
+    <main className="flex min-h-screen flex-col antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
 
       {/* HEADER (matches homepage style, with Terms link) */}
       <header className="border-b py-4 sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur z-50">
@@ -379,11 +379,11 @@ export default function TermsPage() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#features" className="hover:text-slate-900">Features</Link>
-            <Link href="/#how" className="hover:text-slate-900">How it works</Link>
-            <Link href="/#pricing" className="hover:text-slate-900">Pricing</Link>
-            <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+          <nav className="hidden items-center gap-6 text-sm md:flex">
+            <Link href="/#features" className="hover:text-slate-900 dark:hover:text-white">Features</Link>
+            <Link href="/#how" className="hover:text-slate-900 dark:hover:text-white">How it works</Link>
+            <Link href="/#pricing" className="hover:text-slate-900 dark:hover:text-white">Pricing</Link>
+            <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white">Terms</Link>
             <Link href="/login" className="text-sky-600 font-medium">Log in</Link>
             <Link
               href="/signup"
