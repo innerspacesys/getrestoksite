@@ -130,40 +130,49 @@ export default function LocationsPage() {
 
   return (
     <motion.main
-      className="p-4 md:p-10 flex-1 max-w-full md:max-w-5xl mx-auto"
+      className="mx-auto flex-1 max-w-6xl p-4 md:p-10"
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Locations</h1>
+      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <span className="eyebrow">Organization Map</span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl">
+              Locations
+            </h1>
 
-          <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-xl">
-            Locations can represent either <strong>departments</strong> (like
-            “Accounting” or “Warehouse”) or <strong>physical locations</strong>
-            (like “Main Office” or a street address). Use them however your
-            organization needs.
-          </p>
+            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              Locations can represent departments like Accounting or Warehouse,
+              or physical places like a main office or storage closet. Use them
+              however your operation thinks about space.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100 lg:min-w-[240px]">
+            <div className="font-semibold">Current usage</div>
+            <div className="mt-1">
+              <strong>{locations.length}</strong> / {locationLimit === Infinity ? "∞" : locationLimit} locations
+            </div>
+            <button
+              onClick={() => {
+                if (atLimit) {
+                  alert("You've reached the location limit for your current plan.");
+                  return;
+                }
+                setShowModal(true);
+              }}
+              className={`mt-3 w-full rounded-2xl px-4 py-2.5 font-medium text-white ${
+                atLimit
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-sky-600 hover:bg-sky-700"
+              }`}
+            >
+              + Add Location
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={() => {
-            if (atLimit) {
-              alert("You've reached the location limit for your current plan.");
-              return;
-            }
-            setShowModal(true);
-          }}
-          className={`px-4 py-2 rounded-lg text-white ${
-            atLimit
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-sky-600 hover:bg-sky-700"
-          }`}
-        >
-          + Add Location
-        </button>
-      </div>
+      </section>
 
       {/* UPGRADE NOTICE */}
       {atLimit && locationLimit !== Infinity && (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar";
+import OnboardingWalkthrough from "@/components/OnboardingWalkthrough";
 import OrgLoader from "./OrgLoader";
 import { motion } from "framer-motion";
 
@@ -82,6 +83,7 @@ export default function DashboardLayout({
       "/dashboard/reports": "Reports",
       "/dashboard/settings": "Settings",
       "/dashboard/users": "Users",
+      "/dashboard/help": "Help",
     };
 
     document.title = `${titles[pathname] || "Dashboard"} – Restok`;
@@ -96,6 +98,7 @@ export default function DashboardLayout({
     "/dashboard/reports": "Reports",
     "/dashboard/settings": "Settings",
     "/dashboard/users": "Users",
+    "/dashboard/help": "Help",
   };
   const mobileTitle = mobileTitleMap[pathname] || "Dashboard";
 
@@ -132,6 +135,7 @@ export default function DashboardLayout({
 
         {/* CONTENT */}
         <div className="flex-1 flex flex-col">
+          <OnboardingWalkthrough />
           {/* MOBILE TOP BAR */}
           <div className="surface-panel mx-3 mt-3 flex items-center gap-3 rounded-3xl px-4 py-3 md:hidden">
             <button

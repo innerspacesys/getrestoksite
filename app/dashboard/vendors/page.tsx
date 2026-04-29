@@ -135,26 +135,37 @@ export default function VendorsPage() {
   // -------------------------
   return (
     <motion.main
-      className="p-4 md:p-10 flex-1 max-w-full md:max-w-5xl mx-auto"
+      className="mx-auto flex-1 max-w-6xl p-4 md:p-10"
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-          Vendors
-        </h1>
+      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <span className="eyebrow">Supplier Directory</span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl">
+              Vendors
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              Keep the suppliers you reorder from in one place so items,
+              restock actions, and reports have the right contact details.
+            </p>
+          </div>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white"
-        >
-          + Add Vendor
-        </button>
-      </div>
-
-      <p className="mt-2 text-slate-600 dark:text-slate-400">
-        Manage the vendors you reorder supplies from.
-      </p>
+          <div className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100 lg:min-w-[240px]">
+            <div className="font-semibold">Vendor count</div>
+            <div className="mt-1">
+              <strong>{vendors.length}</strong> supplier{vendors.length === 1 ? "" : "s"}
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="button-primary mt-3 w-full !rounded-2xl !px-4 !py-2.5 text-sm shadow-none"
+            >
+              + Add Vendor
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* LIST */}
       <div className="mt-6 space-y-3">

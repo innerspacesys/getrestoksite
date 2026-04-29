@@ -144,19 +144,37 @@ export default function UsersPage() {
 
   return (
     <motion.main
-      className="mx-auto flex-1 max-w-5xl p-4 md:p-10"
+      className="mx-auto flex-1 max-w-6xl p-4 md:p-10"
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
-      <h1 className="text-3xl font-bold">Users</h1>
+      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <span className="eyebrow">Team Management</span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl">
+              Users
+            </h1>
 
-      <p className="text-slate-600 dark:text-slate-400 mt-2">
-        Manage people in your organization.
-      </p>
+            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              Manage who has access to your organization, who can administer
+              billing and setup, and how ownership is handled over time.
+            </p>
+          </div>
 
-      <div className="mt-2 text-xs text-slate-500">
-        Role: <strong>{role}</strong>
-      </div>
+          <div className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100 lg:min-w-[240px]">
+            <div className="font-semibold">Access summary</div>
+            <div className="mt-1">
+              {memberLimit === Infinity
+                ? `${members.length} active users`
+                : `${members.length} / ${memberLimit} seats used`}
+            </div>
+            <div className="mt-2 inline-flex rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800 dark:bg-sky-950/50 dark:text-sky-100">
+              {role.toUpperCase()}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* MEMBER VIEW */}
       {role === "member" && (

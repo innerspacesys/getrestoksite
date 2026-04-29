@@ -142,6 +142,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             <NavItem href="/dashboard/reports" label="Reports" emoji="📝" active={pathname === "/dashboard/reports"} onClick={onNavigate} />
             <NavItem href="/dashboard/users" label="Users" emoji="👥" active={pathname === "/dashboard/users"} onClick={onNavigate} />
             <NavItem href="/dashboard/settings" label="Settings" emoji="⚙️" active={pathname === "/dashboard/settings"} onClick={onNavigate} />
+            <NavItem href="/dashboard/help" label="Help" emoji="❓" active={pathname === "/dashboard/help"} onClick={onNavigate} />
           </nav>
         </div>
 
@@ -323,13 +324,14 @@ function NavItem({
   return (
     <motion.div whileHover={{ x: 3 }}>
       <Link
-      href={href}
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium ${
-        active
-          ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
-          : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/80"
-      }`}
+        href={href}
+        onClick={onClick}
+        data-onboarding-target={label.toLowerCase()}
+        className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium ${
+          active
+            ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+            : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/80"
+        }`}
       >
         <span className="text-base">{emoji}</span>
         <span>{label}</span>

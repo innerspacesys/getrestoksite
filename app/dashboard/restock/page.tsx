@@ -246,14 +246,36 @@ ${user?.displayName || user?.email || "—"}`;
   // ---------------------------------
   return (
     <motion.main
-      className="p-4 md:p-10 flex-1 max-w-full md:max-w-5xl mx-auto"
+      className="mx-auto flex-1 max-w-6xl p-4 md:p-10"
       initial={{ opacity: 0.5 }}
       animate={{ opacity: 1 }}
     >
-      <h1 className="text-3xl font-bold">Restock</h1>
-      <p className="mt-2 text-slate-600 dark:text-slate-400">
-        Reorder items using your saved vendors.
-      </p>
+      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <span className="eyebrow">Action Queue</span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl">
+              Restock
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              Review the items that need action and reorder them using your
+              saved vendor emails or supplier websites.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100 lg:min-w-[240px]">
+            <div className="font-semibold">Current queue</div>
+            <div className="mt-1">
+              <strong>{items.length}</strong> tracked item{items.length === 1 ? "" : "s"}
+            </div>
+            {reviewIds.length > 0 && (
+              <div className="mt-2 inline-flex rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800 dark:bg-sky-950/50 dark:text-sky-100">
+                {reviewIds.length} highlighted from dashboard
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/*
         PRO SAVINGS BANNER (commented out)

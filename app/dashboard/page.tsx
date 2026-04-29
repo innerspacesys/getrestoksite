@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import type { User } from "firebase/auth";
-import Link from "next/link";
 import { useOrgStore, type OrgItem } from "@/lib/orgStore";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -46,9 +45,6 @@ export default function DashboardHome() {
   }, []);
 
   const items = useOrgStore((s) => s.items);
-  const vendors = useOrgStore((s) => s.vendors);
-  const members = useOrgStore((s) => s.members);
-  const locations = useOrgStore((s) => s.locations);
   const plan = useOrgStore((s) => s.plan);
   const loading = useOrgStore((s) => s.loading);
 
@@ -204,68 +200,6 @@ const displayName =
         <Stat label="Due Today" value={stats.dueToday} tone="red" />
       </div>
 
-      <section className="surface-card mt-8 rounded-[30px] p-6 md:p-7">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-              Quick start
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-              Start with vendors if you want your supplier list tidy first, or
-              add them inline while creating items. Restok works either way.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
-            {vendors.length} vendors, {items.length} items, {locations.length}{" "}
-            locations, {members.length} users
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <QuickStartCard
-            title="1. Add vendors first"
-            description="Set up supplier names, emails, and websites now, or skip this and attach vendors from the item form later."
-            cta="Open vendors"
-            href="/dashboard/vendors"
-          />
-          <QuickStartCard
-            title="2. Track your items"
-            description="Add the items you regularly buy, set how many days they usually last, and assign a vendor or location when it helps."
-            cta="Open items"
-            href="/dashboard/items"
-          />
-          <QuickStartCard
-            title="3. Use restock as your action list"
-            description="Restock turns low or due items into a working queue so you can email vendors, visit supplier sites, or mark things reordered."
-            cta="Open restock"
-            href="/dashboard/restock"
-          />
-          <QuickStartCard
-            title="4. Review reports"
-            description={
-              plan === "basic"
-                ? "Upgrade when you want printable shopping lists and analytics. Basic keeps the core tracking workflow simple."
-                : "Print pickup lists for in-store runs and use analytics to spot risky items, vendor concentration, and location coverage."
-            }
-            cta={plan === "basic" ? "View settings" : "Open reports"}
-            href={
-              plan === "basic"
-                ? "/dashboard/settings#billing"
-                : "/dashboard/reports"
-            }
-          />
-        </div>
-
-        {(plan === "pro" || plan === "premium" || plan === "enterprise") && (
-          <div className="mt-6 rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
-            <span className="font-semibold">Pro tip:</span> Pro includes room
-            for one more user and up to two locations, so you can split
-            restock responsibility or organize by office/closet if that helps.
-          </div>
-        )}
-      </section>
-
       {/* GRAPH */}
       <div className="surface-card mt-8 rounded-[30px] p-6 md:p-7">
         <div className="flex items-center justify-between gap-4">
@@ -371,35 +305,6 @@ const displayName =
         </motion.div>
       )}
     </motion.main>
-  );
-}
-
-function QuickStartCard({
-  title,
-  description,
-  href,
-  cta,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  cta: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-[26px] border border-slate-200/80 bg-white/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 dark:border-slate-700 dark:bg-slate-900/55"
-    >
-      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-        {title}
-      </h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        {description}
-      </p>
-      <div className="mt-4 text-sm font-medium text-sky-600 dark:text-sky-300">
-        {cta} →
-      </div>
-    </Link>
   );
 }
 

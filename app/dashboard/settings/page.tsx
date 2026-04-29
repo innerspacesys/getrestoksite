@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
@@ -168,72 +169,6 @@ export default function SettingsPage() {
 
   const planSummary = PLAN_SUMMARIES[plan];
   const canManageBilling = role === "owner" || role === "admin";
-
-  const quickStartSteps = useMemo(() => {
-    const steps = [
-      {
-        title: "Set up vendors first or add them inline",
-        body:
-          "You can organize suppliers on the Vendors page, or just create them from the Add Item modal when you need to move faster.",
-      },
-      {
-        title: "Add the items you actually reorder",
-        body:
-          "Track the supplies that matter most first. Give each item a realistic refill cadence so alerts are useful from day one.",
-      },
-      {
-        title: "Use Restock to review what needs action",
-        body:
-          "The Restock page is where your team acts on low or due items. It turns your tracking into an actual daily workflow.",
-      },
-    ];
-
-    if (plan === "basic") {
-      steps.splice(2, 0, {
-        title: "Use your first location if it helps",
-        body:
-          "Basic includes one location. It is optional, but it can still help if you want to separate front-of-house from storage.",
-      });
-    }
-
-    if (plan === "pro") {
-      steps.splice(2, 0, {
-        title: "Add another teammate and set up 2 locations",
-        body:
-          "Pro gives you one more user seat and up to 2 locations, so you can split work across people and spaces instead of keeping everything in one bucket.",
-      });
-    }
-
-    if (plan === "premium" || plan === "enterprise") {
-      steps.splice(2, 0, {
-        title: "Structure the app around your real operation",
-        body:
-          "Use vendors, locations, and teammates together so reports and restock reviews reflect how your business actually runs.",
-      });
-    }
-
-    if (plan !== "basic") {
-      steps.push({
-        title: "Use Reports for shopping lists and analytics",
-        body:
-          "Reports can print a store shopping list grouped by vendor, and Pro or higher also unlocks analytics to show item risk, vendor concentration, and location coverage.",
-      });
-    } else {
-      steps.push({
-        title: "Use Reports for store pickup lists",
-        body:
-          "Even on Basic, Reports helps you print a simple in-store shopping list for items that need to be picked up.",
-      });
-    }
-
-    steps.push({
-      title: "Tune the app in Settings",
-      body:
-        "Use Settings to manage your profile, control notifications, review your plan, and handle security or billing tasks.",
-    });
-
-    return steps;
-  }, [plan]);
 
   function getErrorMessage(err: unknown, fallback: string) {
     return err instanceof Error ? err.message : fallback;
@@ -533,32 +468,36 @@ export default function SettingsPage() {
         </section>
 
         <section className="surface-card rounded-[30px] p-6">
-          <h2 className="text-xl font-semibold">Workspace Guide</h2>
+          <h2 className="text-xl font-semibold">Help & Onboarding</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            A practical order for getting the most value from Restok.
+            The walkthrough only shows once unless you replay it. Use Help if
+            you want the instructions later without cluttering the rest of the
+            app.
           </p>
 
-          <div className="mt-5 space-y-4">
-            {quickStartSteps.map((step, index) => (
-              <div
-                key={step.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/50"
+          <div className="mt-5 rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-5 dark:border-slate-700 dark:bg-slate-900/50">
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Want a refresher?
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Replay the onboarding walkthrough or open the Help page for the
+              recommended setup order, page-by-page explanations, and support
+              guidance.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/dashboard?tour=1"
+                className="button-primary !rounded-2xl !px-4 !py-2.5 text-sm"
               >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800 dark:bg-sky-950/50 dark:text-sky-100">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-900 dark:text-slate-100">
-                      {step.title}
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      {step.body}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+                Replay walkthrough
+              </Link>
+              <Link
+                href="/dashboard/help"
+                className="button-secondary !rounded-2xl !px-4 !py-2.5 text-sm"
+              >
+                Open help page
+              </Link>
+            </div>
           </div>
         </section>
       </div>

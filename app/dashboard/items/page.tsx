@@ -359,36 +359,6 @@ export default function ItemsPage() {
         </div>
       </section>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="surface-card rounded-[28px] p-5">
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Set up vendors now
-          </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Use the Vendors page if you want a cleaner setup before tracking
-            items.
-          </p>
-        </div>
-        <div className="surface-card rounded-[28px] p-5">
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Or add them inline
-          </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            The Add Item modal lets you create a supplier on the spot, so you
-            can keep moving.
-          </p>
-        </div>
-        <div className="surface-card rounded-[28px] p-5">
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Assign locations too
-          </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Location tags make restock reviews, alerts, and reports much more
-            useful.
-          </p>
-        </div>
-      </div>
-
       {atLimit && (
         <div className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
           You’ve reached the item limit for your current plan.
