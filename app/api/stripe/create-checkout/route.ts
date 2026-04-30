@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { getRequestIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 type Plan = "basic" | "pro" | "premium" ;
 type Interval = "monthly" | "yearly";
@@ -11,6 +12,7 @@ type CheckoutBody = {
   phone?: string;
   plan?: Plan;
   interval?: Interval;
+  turnstileToken?: string;
 };
 
 export async function POST(req: Request) {
@@ -32,12 +34,34 @@ export async function POST(req: Request) {
     const phone = body.phone;
     const plan = (body.plan ?? "") as Plan;
     const interval = (body.interval ?? "monthly") as Interval;
+    const turnstileToken = body.turnstileToken;
 
     if (!email || !plan) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    if (process.env.TURNSTILE_SECRET_KEY) {
+      if (!turnstileToken) {
+        return NextResponse.json(
+          { error: "Missing captcha token" },
+          { status: 400 }
+        );
+      }
+
+      const captcha = await verifyTurnstileToken(
+        turnstileToken,
+        getRequestIp(req)
+      );
+
+      if (!captcha.success) {
+        return NextResponse.json(
+          { error: "Captcha verification failed" },
+          { status: 400 }
+        );
+      }
     }
 
     const priceMap: Record<Plan, Record<Interval, string | undefined>> = {

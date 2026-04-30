@@ -104,6 +104,8 @@ export default function OnboardingWalkthrough() {
   const forceTour = searchParams.get("tour") === "1";
   const steps = useMemo(() => getTourSteps(plan), [plan]);
   const currentStep = steps[stepIndex];
+  const isMobileViewport =
+    typeof window !== "undefined" ? window.innerWidth < 768 : false;
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
@@ -230,8 +232,8 @@ export default function OnboardingWalkthrough() {
       : undefined;
 
   return (
-    <div className="fixed inset-0 z-[70]">
-      <div className="absolute inset-0 bg-slate-950/58 backdrop-blur-[2px]" />
+    <div className="pointer-events-none fixed inset-0 z-[70]">
+      <div className="absolute inset-0 hidden bg-slate-950/58 backdrop-blur-[2px] md:block" />
 
       {targetRect && (
         <div
@@ -244,7 +246,7 @@ export default function OnboardingWalkthrough() {
         className="absolute inset-x-4 bottom-4 top-auto md:inset-auto md:w-[360px]"
         style={cardStyle}
       >
-        <div className="surface-panel rounded-[30px] p-6 shadow-2xl">
+        <div className="pointer-events-auto surface-panel rounded-[30px] p-6 shadow-2xl">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
@@ -271,6 +273,13 @@ export default function OnboardingWalkthrough() {
           <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
             {currentStep.body}
           </p>
+
+          {isMobileViewport && currentStep.target && (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
+              On mobile, use the menu button in the top-left to open the
+              sidebar and visit this page.
+            </div>
+          )}
 
           {stepIndex === 0 && (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">

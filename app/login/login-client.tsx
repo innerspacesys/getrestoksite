@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signInWithRedirect,
+} from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
+import { finalizeClientSignIn } from "@/lib/clientAuth";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function LoginClient() {
   const router = useRouter();
   const params = useSearchParams();
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,17 +31,82 @@ export default function LoginClient() {
     return err instanceof Error ? err.message : "Failed to log in";
   }
 
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result?.user) return;
+
+        setLoading(true);
+        setError("");
+
+        await finalizeClientSignIn(result.user);
+        router.push("/dashboard");
+      })
+      .catch((err: unknown) => {
+        setError(getErrorMessage(err));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [router]);
+
+  async function verifyTurnstile() {
+    if (!turnstileEnabled) return;
+    if (!turnstileToken) {
+      throw new Error("Please complete the security check.");
+    }
+
+    const res = await fetch("/api/auth/verify-turnstile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: turnstileToken }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setTurnstileToken("");
+      throw new Error(data.error || "Security check failed.");
+    }
+  }
+
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await verifyTurnstile();
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await finalizeClientSignIn(result.user);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError("");
+    setLoading(true);
+
+    try {
+      await verifyTurnstile();
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      await finalizeClientSignIn(result.user);
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setLoading(false);
     }
   }
@@ -105,6 +180,37 @@ export default function LoginClient() {
             {loading ? "Logging in..." : "Log in"}
           </button>
         </form>
+
+        <div className="mt-4">
+          <TurnstileWidget
+            onVerify={setTurnstileToken}
+            onExpire={() => setTurnstileToken("")}
+          />
+        </div>
+
+        <div className="mt-5">
+          <div className="relative text-center text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+            <span className="relative z-10 bg-transparent px-2">
+              Or continue with
+            </span>
+            <div className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-slate-200 dark:bg-slate-800" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="button-secondary mt-4 w-full !rounded-2xl !py-3 text-sm"
+          >
+            <span className="mr-2 text-base">G</span>
+            Continue with Google
+          </button>
+
+          <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
+            Google sign-in works for existing Restok accounts using the same
+            email address.
+          </p>
+        </div>
 
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Don’t have an account?

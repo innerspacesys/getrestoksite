@@ -26,6 +26,7 @@ type MeResponse = {
 
 export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const isMobileDrawer = Boolean(onNavigate);
   const [plan, setPlan] = useState<Plan>("basic");
   const [loading, setLoading] = useState(true);
 
@@ -105,8 +106,29 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
       {/* ---------- SIDEBAR ---------- */}
       <aside
         data-onboarding-scope="sidebar"
-        className="surface-panel sticky top-0 flex h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-white/40 p-3 md:p-4 dark:border-white/10"
+        className="surface-panel sticky top-0 flex h-[100dvh] w-72 shrink-0 flex-col overflow-y-auto border-r border-white/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:h-screen md:overflow-hidden md:p-4 dark:border-white/10"
       >
+        {isMobileDrawer && (
+          <div className="mb-3 flex items-center justify-between rounded-3xl border border-white/40 bg-white/55 px-3.5 py-3 shadow-sm dark:border-white/10 dark:bg-slate-900/60 md:hidden">
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Navigation
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Move around Restok
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigate}
+              className="rounded-2xl bg-slate-100 px-3 py-2 text-lg dark:bg-slate-800"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div className="mb-4 rounded-3xl border border-white/40 bg-white/55 p-3.5 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-sky-50 p-2.5 dark:bg-sky-950/50">
@@ -134,7 +156,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
 
-        <div className="flex-1">
+        <div className="min-h-0 flex-1">
           <nav className="flex flex-col gap-1 text-slate-700 dark:text-slate-200">
             <NavItem href="/dashboard" label="Dashboard" emoji="📊" active={pathname === "/dashboard"} onClick={onNavigate} />
             <NavItem href="/dashboard/items" label="Items" emoji="📦" active={pathname === "/dashboard/items"} onClick={onNavigate} />
@@ -149,7 +171,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
 
         {/* ---------- Bottom ---------- */}
-        <div className="mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/70">
+        <div className="sticky bottom-0 mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 bg-[color:var(--background-elevated)]/95 pt-4 backdrop-blur dark:border-slate-700/70">
           {/* PLAN */}
           <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-3.5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">
@@ -209,7 +231,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="rounded-2xl bg-rose-500 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
+            className="rounded-2xl bg-rose-500 py-3 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
           >
             Log Out
           </motion.button>

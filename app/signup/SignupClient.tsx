@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function SignupPage() {
   const params = useSearchParams();
@@ -21,8 +22,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   function getErrorMessage(err: unknown) {
     return err instanceof Error ? err.message : "Signup failed";
@@ -34,6 +37,10 @@ export default function SignupPage() {
     setError("");
 
     try {
+      if (turnstileEnabled && !turnstileToken) {
+        throw new Error("Please complete the security check.");
+      }
+
       const res = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,6 +51,7 @@ export default function SignupPage() {
           phone,
           plan: selectedPlan,
           interval,
+          turnstileToken,
         }),
       });
 
@@ -193,6 +201,13 @@ export default function SignupPage() {
               {loading ? "Loading..." : "Continue to Payment"}
             </button>
           </form>
+
+          <div className="mt-4">
+            <TurnstileWidget
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
+          </div>
 
           <p className="mt-4 text-center text-sm text-zinc-600 dark:text-slate-400">
             Already have an account?{" "}
