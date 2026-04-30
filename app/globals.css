@@ -70,12 +70,21 @@ select {
 [data-onboarding-active-target="true"] {
   position: relative;
   z-index: 95;
+  isolation: isolate;
+  filter: none !important;
+  backdrop-filter: none !important;
   box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.95);
 }
 
 [data-onboarding-active-scope="true"] {
   position: relative;
   z-index: 90;
+}
+
+[data-onboarding-active-container="true"] {
+  position: relative;
+  z-index: 85 !important;
+  isolation: isolate;
 }
 
 button {

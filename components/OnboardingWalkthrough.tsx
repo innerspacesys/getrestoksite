@@ -186,6 +186,7 @@ export default function OnboardingWalkthrough() {
 
     let highlightedTarget: HTMLElement | null = null;
     let highlightedScope: HTMLElement | null = null;
+    let highlightedContainer: HTMLElement | null = null;
     let retryFrame: number | null = null;
     let retryCount = 0;
 
@@ -206,10 +207,17 @@ export default function OnboardingWalkthrough() {
       retryCount = 0;
 
       const scope = target.closest<HTMLElement>("[data-onboarding-scope]");
+      const container = target.closest<HTMLElement>("[data-onboarding-container]");
       if (highlightedScope !== scope) {
         highlightedScope?.removeAttribute("data-onboarding-active-scope");
         scope?.setAttribute("data-onboarding-active-scope", "true");
         highlightedScope = scope;
+      }
+
+      if (highlightedContainer !== container) {
+        highlightedContainer?.removeAttribute("data-onboarding-active-container");
+        container?.setAttribute("data-onboarding-active-container", "true");
+        highlightedContainer = container;
       }
 
       if (highlightedTarget !== target) {
@@ -234,6 +242,7 @@ export default function OnboardingWalkthrough() {
     return () => {
       highlightedTarget?.removeAttribute("data-onboarding-active-target");
       highlightedScope?.removeAttribute("data-onboarding-active-scope");
+      highlightedContainer?.removeAttribute("data-onboarding-active-container");
       if (retryFrame) {
         window.cancelAnimationFrame(retryFrame);
       }
