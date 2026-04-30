@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase";
 import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
 import { useOrgData } from "@/lib/useOrgData";
 import ThemeToggle from "./ThemeToggle";
+import AppVersionLabel from "./AppVersionLabel";
 
 type ModernDashboardShellProps = {
   children: React.ReactNode;
@@ -351,7 +352,7 @@ export default function ModernDashboardShell({
                 </button>
 
                 <div className="pt-1 text-center text-[11px] uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                  {APP_DISPLAY_VERSION}
+                  <AppVersionLabel fallback={APP_DISPLAY_VERSION} />
                 </div>
               </div>
             </motion.aside>

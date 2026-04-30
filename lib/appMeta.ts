@@ -13,11 +13,17 @@ export function getDeploymentSignature() {
 }
 
 export function getPublicAppMeta() {
+  const deploymentSignature = getDeploymentSignature();
+  const displayVersion =
+    deploymentSignature && deploymentSignature !== APP_VERSION
+      ? `v${APP_VERSION} · ${deploymentSignature}`
+      : APP_DISPLAY_VERSION;
+
   return {
     name: APP_NAME,
     version: APP_VERSION,
-    displayVersion: APP_DISPLAY_VERSION,
+    displayVersion,
     releaseDate: APP_RELEASE_DATE,
-    deploymentSignature: getDeploymentSignature(),
+    deploymentSignature,
   };
 }

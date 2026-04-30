@@ -9,6 +9,7 @@ type UpdateNotifierProps = {
 
 type AppMetaResponse = {
   version?: string;
+  displayVersion?: string;
   deploymentSignature?: string;
 };
 
@@ -39,7 +40,7 @@ export default function UpdateNotifier({
           nextSignature &&
           nextSignature !== initialSignature
         ) {
-          setNextVersion(data.version || initialVersion);
+          setNextVersion(data.displayVersion || data.version || initialVersion);
           setDismissed(false);
         }
       } catch {
@@ -47,10 +48,23 @@ export default function UpdateNotifier({
       }
     }
 
-    const interval = window.setInterval(checkForUpdate, 120000);
+    void checkForUpdate();
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        void checkForUpdate();
+      }
+    }
+
+    window.addEventListener("focus", checkForUpdate);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const interval = window.setInterval(checkForUpdate, 30000);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", checkForUpdate);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.clearInterval(interval);
     };
   }, [initialSignature, initialVersion]);

@@ -30,12 +30,6 @@ export default function PublicHeader() {
           <Link href="/help" className="hover:text-slate-900 dark:hover:text-white">
             Help
           </Link>
-          <Link
-            href="/changelog"
-            className="hover:text-slate-900 dark:hover:text-white"
-          >
-            Changelog
-          </Link>
           <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white">
             Terms
           </Link>

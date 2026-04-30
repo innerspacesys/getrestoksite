@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
+import { getPublicAppMeta } from "@/lib/appMeta";
 
 export default function PublicFooter() {
+  const appMeta = getPublicAppMeta();
+
   return (
     <footer className="mt-16 border-t border-slate-200/80 py-8 dark:border-slate-800">
       <div className="mx-auto grid max-w-7xl gap-6 px-6 text-sm text-slate-600 dark:text-slate-300 md:grid-cols-4">
@@ -21,9 +23,6 @@ export default function PublicFooter() {
           <ul className="mt-2 space-y-2">
             <li>
               <Link href="/help">Help</Link>
-            </li>
-            <li>
-              <Link href="/changelog">Changelog</Link>
             </li>
             <li>
               <Link href="/terms">Terms and Policies</Link>
@@ -49,7 +48,7 @@ export default function PublicFooter() {
           <div className="font-semibold text-slate-900 dark:text-slate-100">
             Version
           </div>
-          <div className="mt-2">{APP_DISPLAY_VERSION}</div>
+          <div className="mt-2">{appMeta.displayVersion}</div>
         </div>
       </div>
 

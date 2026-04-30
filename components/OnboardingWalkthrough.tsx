@@ -269,13 +269,27 @@ export default function OnboardingWalkthrough() {
 
   const cardStyle =
     targetRect && typeof window !== "undefined" && window.innerWidth >= 1024
-      ? {
-          top: Math.max(24, Math.min(targetRect.top, window.innerHeight - 360)),
-          left: Math.min(
-            targetRect.left + targetRect.width + 24,
-            window.innerWidth - 400
-          ),
-        }
+      ? (() => {
+          const cardWidth = 360;
+          const gutter = 24;
+          const top = Math.max(
+            24,
+            Math.min(targetRect.top, window.innerHeight - 360)
+          );
+          const rightSideLeft = targetRect.left + targetRect.width + gutter;
+          const leftSideLeft = targetRect.left - cardWidth - gutter;
+          const fitsOnRight = rightSideLeft + cardWidth <= window.innerWidth - 24;
+          const fitsOnLeft = leftSideLeft >= 24;
+
+          let left = rightSideLeft;
+          if (!fitsOnRight && fitsOnLeft) {
+            left = leftSideLeft;
+          } else if (!fitsOnRight) {
+            left = Math.max(24, window.innerWidth - cardWidth - 24);
+          }
+
+          return { top, left };
+        })()
       : undefined;
 
   return (
