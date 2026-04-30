@@ -35,7 +35,9 @@ export default function TurnstileWidget({
   const onVerifyRef = useRef(onVerify);
   const onExpireRef = useRef(onExpire);
   const elementId = useId().replace(/:/g, "");
-  const [scriptReady, setScriptReady] = useState(false);
+  const [scriptReady, setScriptReady] = useState(
+    typeof window !== "undefined" && Boolean(window.turnstile)
+  );
 
   const enabled = useMemo(() => Boolean(siteKey), [siteKey]);
 
@@ -84,6 +86,7 @@ export default function TurnstileWidget({
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
         onLoad={() => setScriptReady(true)}
+        onReady={() => setScriptReady(true)}
       />
       <div
         id={elementId}
