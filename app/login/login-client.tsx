@@ -15,6 +15,7 @@ import { finalizeClientSignIn } from "@/lib/clientAuth";
 import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function LoginClient() {
+  const redirectTokenStorageKey = "restok:turnstile-token";
   const router = useRouter();
   const params = useSearchParams();
   const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
@@ -22,6 +23,7 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,6 +31,17 @@ export default function LoginClient() {
 
   function getErrorMessage(err: unknown) {
     return err instanceof Error ? err.message : "Failed to log in";
+  }
+
+  function requireTurnstileToken() {
+    if (turnstileEnabled && !turnstileToken) {
+      throw new Error("Please complete the security check.");
+    }
+  }
+
+  function resetTurnstileChallenge() {
+    setTurnstileToken("");
+    setTurnstileResetSignal((current) => current + 1);
   }
 
   useEffect(() => {
@@ -39,10 +52,18 @@ export default function LoginClient() {
         setLoading(true);
         setError("");
 
-        await finalizeClientSignIn(result.user);
+        const pendingTurnstileToken =
+          window.sessionStorage.getItem(redirectTokenStorageKey) || undefined;
+
+        await finalizeClientSignIn(result.user, {
+          turnstileToken: pendingTurnstileToken,
+        });
+        window.sessionStorage.removeItem(redirectTokenStorageKey);
         router.push("/dashboard");
       })
       .catch((err: unknown) => {
+        window.sessionStorage.removeItem(redirectTokenStorageKey);
+        resetTurnstileChallenge();
         setError(getErrorMessage(err));
       })
       .finally(() => {
@@ -50,36 +71,22 @@ export default function LoginClient() {
       });
   }, [router]);
 
-  async function verifyTurnstile() {
-    if (!turnstileEnabled) return;
-    if (!turnstileToken) {
-      throw new Error("Please complete the security check.");
-    }
-
-    const res = await fetch("/api/auth/verify-turnstile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: turnstileToken }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setTurnstileToken("");
-      throw new Error(data.error || "Security check failed.");
-    }
-  }
-
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await verifyTurnstile();
+      requireTurnstileToken();
       const result = await signInWithEmailAndPassword(auth, email, password);
-      await finalizeClientSignIn(result.user);
+      await finalizeClientSignIn(result.user, {
+        turnstileToken: turnstileToken || undefined,
+      });
       router.push("/dashboard");
     } catch (err: unknown) {
+      if (getErrorMessage(err).toLowerCase().includes("captcha")) {
+        resetTurnstileChallenge();
+      }
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
@@ -91,21 +98,28 @@ export default function LoginClient() {
     setLoading(true);
 
     try {
-      await verifyTurnstile();
+      requireTurnstileToken();
 
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
       const isMobile = window.innerWidth < 768;
       if (isMobile) {
+        window.sessionStorage.setItem(redirectTokenStorageKey, turnstileToken);
         await signInWithRedirect(auth, provider);
         return;
       }
 
       const result = await signInWithPopup(auth, provider);
-      await finalizeClientSignIn(result.user);
+      await finalizeClientSignIn(result.user, {
+        turnstileToken: turnstileToken || undefined,
+      });
       router.push("/dashboard");
     } catch (err: unknown) {
+      window.sessionStorage.removeItem(redirectTokenStorageKey);
+      if (getErrorMessage(err).toLowerCase().includes("captcha")) {
+        resetTurnstileChallenge();
+      }
       setError(getErrorMessage(err));
       setLoading(false);
     }
@@ -185,6 +199,7 @@ export default function LoginClient() {
           <TurnstileWidget
             onVerify={setTurnstileToken}
             onExpire={() => setTurnstileToken("")}
+            resetSignal={turnstileResetSignal}
           />
         </div>
 
@@ -207,8 +222,8 @@ export default function LoginClient() {
           </button>
 
           <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
-            Google sign-in works for existing Restok accounts using the same
-            email address.
+            Google sign-in works for existing accounts, and Google signup starts
+            from the sign-up page.
           </p>
         </div>
 

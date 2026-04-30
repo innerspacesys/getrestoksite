@@ -66,23 +66,34 @@ export async function POST(req: Request) {
     }
 
     const pending = pendingSnap.data()!;
-    const { email, name, orgName, phone, plan } = pending;
+    const { email, name, orgName, phone, plan, googleUid } = pending;
 
-    const existingUser = await adminAuth
-      .getUserByEmail(email)
-      .catch(() => null);
+    let userRecord;
 
-    if (existingUser) {
-      console.log("ℹ️ User already exists:", email);
-      return NextResponse.json({ received: true });
+    if (googleUid) {
+      userRecord = await adminAuth.getUser(googleUid).catch(() => null);
+
+      if (!userRecord) {
+        console.warn("⚠️ Google signup user missing:", googleUid);
+        return NextResponse.json({ received: true });
+      }
+    } else {
+      const existingUser = await adminAuth
+        .getUserByEmail(email)
+        .catch(() => null);
+
+      if (existingUser) {
+        console.log("ℹ️ User already exists:", email);
+        return NextResponse.json({ received: true });
+      }
+
+      userRecord = await adminAuth.createUser({
+        email,
+        displayName: name,
+      });
     }
 
     const normalizedPlan = normalizePlan(plan);
-
-    const userRecord = await adminAuth.createUser({
-      email,
-      displayName: name,
-    });
 
     const orgId = userRecord.uid;
 
@@ -104,34 +115,37 @@ export async function POST(req: Request) {
       orgId,
       role: "owner",
       createdAt: Timestamp.now(),
-    });
+      authProvider: googleUid ? "google.com" : "password",
+    }, { merge: true });
 
-    const token = crypto.randomBytes(32).toString("hex");
+    if (!googleUid) {
+      const token = crypto.randomBytes(32).toString("hex");
 
-    await adminDb.collection("passwordSetupTokens").doc(token).set({
-      uid: orgId,
-      email,
-      createdAt: Timestamp.now(),
-      expiresAt: Timestamp.fromDate(
-        new Date(Date.now() + 1000 * 60 * 60 * 24)
-      ),
-    });
+      await adminDb.collection("passwordSetupTokens").doc(token).set({
+        uid: orgId,
+        email,
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromDate(
+          new Date(Date.now() + 1000 * 60 * 60 * 24)
+        ),
+      });
 
-    const setupUrl = `https://getrestok.com/set-password?token=${token}`;
+      const setupUrl = `https://getrestok.com/set-password?token=${token}`;
 
-    const message = buildPasswordSetupEmail({
-      recipientName: name,
-      setupUrl,
-      orgName: orgName || name || "My Organization",
-    });
+      const message = buildPasswordSetupEmail({
+        recipientName: name,
+        setupUrl,
+        orgName: orgName || name || "My Organization",
+      });
 
-    await sendEmail({
-      from: "Restok <accounts@getrestok.com>",
-      to: email,
-      subject: message.subject,
-      html: message.html,
-      text: message.text,
-    });
+      await sendEmail({
+        from: "Restok <accounts@getrestok.com>",
+        to: email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+    }
 
     await pendingRef.delete();
   }

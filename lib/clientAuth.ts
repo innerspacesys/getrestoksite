@@ -3,17 +3,30 @@
 import type { User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-export async function finalizeClientSignIn(user: User) {
+type FinalizeClientSignInOptions = {
+  turnstileToken?: string;
+};
+
+export async function finalizeClientSignIn(
+  user: User,
+  options: FinalizeClientSignInOptions = {}
+) {
   const token = await user.getIdToken(true);
 
   const sessionRes = await fetch("/api/auth/set-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({
+      token,
+      turnstileToken: options.turnstileToken,
+    }),
   });
 
   if (!sessionRes.ok) {
-    throw new Error("Failed to start session");
+    const data = (await sessionRes.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+    throw new Error(data?.error || "Failed to start session");
   }
 
   const meRes = await fetch("/api/me", {

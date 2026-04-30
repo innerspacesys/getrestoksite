@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 import { getRequestIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 type Plan = "basic" | "pro" | "premium" ;
@@ -13,6 +13,7 @@ type CheckoutBody = {
   plan?: Plan;
   interval?: Interval;
   turnstileToken?: string;
+  authToken?: string;
 };
 
 export async function POST(req: Request) {
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     const plan = (body.plan ?? "") as Plan;
     const interval = (body.interval ?? "monthly") as Interval;
     const turnstileToken = body.turnstileToken;
+    const authToken = body.authToken;
 
     if (!email || !plan) {
       return NextResponse.json(
@@ -59,6 +61,34 @@ export async function POST(req: Request) {
       if (!captcha.success) {
         return NextResponse.json(
           { error: "Captcha verification failed" },
+          { status: 400 }
+        );
+      }
+    }
+
+    let googleUid: string | null = null;
+    let googleEmail: string | null = null;
+
+    if (authToken) {
+      const decoded = await adminAuth.verifyIdToken(authToken);
+      googleUid = decoded.uid;
+      googleEmail = decoded.email || null;
+
+      if (googleEmail && googleEmail.toLowerCase() !== email.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Google account email does not match signup email" },
+          { status: 400 }
+        );
+      }
+
+      const existingProfile = await adminDb
+        .collection("users")
+        .doc(decoded.uid)
+        .get();
+
+      if (existingProfile.exists && existingProfile.data()?.orgId) {
+        return NextResponse.json(
+          { error: "This Google account already belongs to a Restok workspace" },
           { status: 400 }
         );
       }
@@ -103,6 +133,7 @@ export async function POST(req: Request) {
         name: name || "",
         orgName: orgName || "",
         phone: phone || "",
+        googleUid: googleUid || "",
       },
 
       line_items: [
@@ -123,6 +154,8 @@ export async function POST(req: Request) {
       phone: phone || "",
       plan,
       interval,
+      googleUid: googleUid || "",
+      googleEmail: googleEmail || "",
       createdAt: new Date(),
     });
 

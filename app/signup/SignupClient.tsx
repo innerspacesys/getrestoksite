@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function SignupPage() {
   const params = useSearchParams();
@@ -23,6 +31,9 @@ export default function SignupPage() {
   const [phone, setPhone] = useState("");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
+  const [googleAuthToken, setGoogleAuthToken] = useState("");
+  const [googleConnected, setGoogleConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
@@ -30,6 +41,41 @@ export default function SignupPage() {
   function getErrorMessage(err: unknown) {
     return err instanceof Error ? err.message : "Signup failed";
   }
+
+  async function applyGoogleUser(user: typeof auth.currentUser) {
+    if (!user) return;
+
+    const token = await user.getIdToken(true);
+    setGoogleAuthToken(token);
+    setGoogleConnected(true);
+    setEmail((current) => current || user.email || "");
+    setName((current) => current || user.displayName || "");
+  }
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        setGoogleConnected(false);
+        setGoogleAuthToken("");
+        return;
+      }
+
+      applyGoogleUser(user).catch((err: unknown) => {
+        setError(getErrorMessage(err));
+      });
+    });
+
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result?.user) return;
+        await applyGoogleUser(result.user);
+      })
+      .catch((err: unknown) => {
+        setError(getErrorMessage(err));
+      });
+
+    return () => unsub();
+  }, []);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -52,12 +98,17 @@ export default function SignupPage() {
           plan: selectedPlan,
           interval,
           turnstileToken,
+          authToken: googleAuthToken || undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.error?.toLowerCase().includes("captcha")) {
+          setTurnstileToken("");
+          setTurnstileResetSignal((current) => current + 1);
+        }
         throw new Error(data.error || "Failed to start checkout");
       }
 
@@ -65,6 +116,29 @@ export default function SignupPage() {
     } catch (err: unknown) {
       console.error(err);
       setError(getErrorMessage(err));
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignup() {
+    setError("");
+    setLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      await applyGoogleUser(result.user);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
       setLoading(false);
     }
   }
@@ -98,11 +172,43 @@ export default function SignupPage() {
             </span>
           </p>
 
+          {googleConnected && (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
+              Google account connected for signup. We&apos;ll use that account
+              after payment instead of sending a password setup email.
+            </div>
+          )}
+
           {error && (
             <div className="mt-4 rounded-2xl bg-red-100 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">
               {error}
             </div>
           )}
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={loading}
+              className="button-secondary w-full !rounded-2xl !py-3 text-sm"
+            >
+              <span className="mr-2 text-base">G</span>
+              {googleConnected ? "Google account connected" : "Start with Google"}
+            </button>
+            {googleConnected && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await signOut(auth);
+                  setGoogleConnected(false);
+                  setGoogleAuthToken("");
+                }}
+                className="mt-3 w-full text-center text-xs text-slate-500 hover:underline dark:text-slate-400"
+              >
+                Use a different Google account
+              </button>
+            )}
+          </div>
 
           <form onSubmit={handleSignup} className="mt-6 space-y-4">
             <div>
@@ -206,8 +312,14 @@ export default function SignupPage() {
             <TurnstileWidget
               onVerify={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
+              resetSignal={turnstileResetSignal}
             />
           </div>
+
+          <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
+            If Google does not provide everything we need, just fill in the
+            missing fields above before continuing to payment.
+          </p>
 
           <p className="mt-4 text-center text-sm text-zinc-600 dark:text-slate-400">
             Already have an account?{" "}

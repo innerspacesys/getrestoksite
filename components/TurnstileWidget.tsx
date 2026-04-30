@@ -20,37 +20,46 @@ type TurnstileWidgetProps = {
   onVerify: (token: string) => void;
   onExpire?: () => void;
   className?: string;
+  resetSignal?: number;
 };
 
 export default function TurnstileWidget({
   onVerify,
   onExpire,
   className,
+  resetSignal = 0,
 }: TurnstileWidgetProps) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
   const elementId = useId().replace(/:/g, "");
   const [scriptReady, setScriptReady] = useState(false);
 
   const enabled = useMemo(() => Boolean(siteKey), [siteKey]);
 
   useEffect(() => {
+    onVerifyRef.current = onVerify;
+  }, [onVerify]);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+
+  useEffect(() => {
     if (!enabled || !scriptReady || !containerRef.current || !window.turnstile) {
       return;
     }
 
-    if (widgetIdRef.current) {
-      window.turnstile.remove(widgetIdRef.current);
-      widgetIdRef.current = null;
-    }
+    if (widgetIdRef.current) return;
 
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
       theme: "auto",
-      callback: (token: string) => onVerify(token),
-      "expired-callback": () => onExpire?.(),
-      "error-callback": () => onExpire?.(),
+      callback: (token: string) => onVerifyRef.current(token),
+      "expired-callback": () => onExpireRef.current?.(),
+      "error-callback": () => onExpireRef.current?.(),
     });
 
     return () => {
@@ -59,7 +68,13 @@ export default function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [enabled, onExpire, onVerify, scriptReady, siteKey]);
+  }, [enabled, scriptReady, siteKey]);
+
+  useEffect(() => {
+    if (!widgetIdRef.current || !window.turnstile || resetSignal === 0) return;
+
+    window.turnstile.reset(widgetIdRef.current);
+  }, [resetSignal]);
 
   if (!enabled) return null;
 
