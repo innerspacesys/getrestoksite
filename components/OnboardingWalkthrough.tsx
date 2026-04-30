@@ -276,8 +276,8 @@ export default function OnboardingWalkthrough() {
 
           {isMobileViewport && currentStep.target && (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
-              On mobile, use the menu button in the top-left to open the
-              sidebar and visit this page.
+              On mobile, use the navigation controls to open the right section
+              and visit this page.
             </div>
           )}
 

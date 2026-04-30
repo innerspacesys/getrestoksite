@@ -14,6 +14,7 @@ type Plan = "basic" | "pro" | "premium" | "enterprise";
 
 type SidebarProps = {
   onNavigate?: () => void;
+  onSwitchNavMode?: () => void;
 };
 
 type MeResponse = {
@@ -24,7 +25,7 @@ type MeResponse = {
   plan?: string;
 };
 
-export default function Sidebar({ onNavigate }: SidebarProps) {
+export default function Sidebar({ onNavigate, onSwitchNavMode }: SidebarProps) {
   const pathname = usePathname();
   const isMobileDrawer = Boolean(onNavigate);
   const [plan, setPlan] = useState<Plan>("basic");
@@ -207,6 +208,16 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           </div>
 
           <ThemeToggle />
+
+          {onSwitchNavMode && (
+            <button
+              type="button"
+              onClick={onSwitchNavMode}
+              className="button-secondary w-full justify-center !rounded-2xl !px-4 !py-3 text-sm"
+            >
+              Try modern navigation
+            </button>
+          )}
 
           {/* Support button */}
           <button

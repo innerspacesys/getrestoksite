@@ -6,6 +6,7 @@ import Sidebar from "@/components/sidebar";
 import OnboardingWalkthrough from "@/components/OnboardingWalkthrough";
 import OrgLoader from "./OrgLoader";
 import { motion } from "framer-motion";
+import ModernDashboardShell from "@/components/ModernDashboardShell";
 
 type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
@@ -23,6 +24,11 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showInstallHint, setShowInstallHint] = useState(false);
+  const [storedNavMode, setStoredNavMode] = useState<"classic" | "modern">(() => {
+    if (typeof window === "undefined") return "modern";
+    const savedMode = window.localStorage.getItem("restok-dashboard-nav");
+    return savedMode === "classic" || savedMode === "modern" ? savedMode : "modern";
+  });
 
   useEffect(() => {
     const saved =
@@ -102,17 +108,62 @@ export default function DashboardLayout({
   };
   const mobileTitle = mobileTitleMap[pathname] || "Dashboard";
 
+  const navMode = storedNavMode;
+
   function dismissInstallHint() {
     localStorage.setItem("restok_install_hint_dismissed", "1");
     setShowInstallHint(false);
   }
 
+  function switchNavMode(mode: "classic" | "modern") {
+    localStorage.setItem("restok-dashboard-nav", mode);
+    setStoredNavMode(mode);
+    setOpen(false);
+  }
+
   return (
     <OrgLoader>
+      {navMode === "modern" ? (
+        <div className="subtle-shell min-h-screen">
+          <OnboardingWalkthrough />
+          {showInstallHint && (
+            <div className="mx-3 mt-3 rounded-3xl border border-sky-200 bg-sky-50/95 px-4 py-4 text-sm text-sky-950 shadow-sm md:hidden dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-100">
+              <div className="font-semibold">Add Restok to your Home Screen</div>
+              <p className="mt-1 text-sky-900/80 dark:text-sky-100/80">
+                For the best iPhone experience, open Safari&apos;s Share menu
+                and choose &quot;Add to Home Screen&quot;. You can still keep
+                using Restok in the browser for now.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={dismissInstallHint}
+                  className="rounded-2xl bg-sky-600 px-3 py-2 text-white"
+                >
+                  Continue in Browser
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissInstallHint}
+                  className="rounded-2xl border border-sky-300 px-3 py-2 text-sky-900 dark:border-sky-700 dark:text-sky-100"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+          <ModernDashboardShell
+            mobileTitle={mobileTitle}
+            onRequestClassicMode={() => switchNavMode("classic")}
+          >
+            {children}
+          </ModernDashboardShell>
+        </div>
+      ) : (
       <div className="subtle-shell min-h-screen md:grid md:grid-cols-[clamp(16rem,22vw,18.5rem)_minmax(0,1fr)]">
         {/* DESKTOP SIDEBAR */}
         <div className="hidden md:block md:min-w-0">
-          <Sidebar />
+          <Sidebar onSwitchNavMode={() => switchNavMode("modern")} />
         </div>
 
         {/* MOBILE DRAWER */}
@@ -122,7 +173,10 @@ export default function DashboardLayout({
           transition={{ type: "tween" }}
           className="fixed inset-y-0 left-0 z-40 w-72 md:hidden"
         >
-          <Sidebar onNavigate={() => setOpen(false)} />
+          <Sidebar
+            onNavigate={() => setOpen(false)}
+            onSwitchNavMode={() => switchNavMode("modern")}
+          />
         </motion.div>
 
         {/* OVERLAY */}
@@ -182,6 +236,7 @@ export default function DashboardLayout({
           <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
         </div>
       </div>
+      )}
     </OrgLoader>
   );
 }
