@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
+import { adminAuth } from "@/lib/firebaseAdmin";
 import { getRequestIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function POST(req: Request) {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     // Verify Firebase token
-    const decoded = await getAuth().verifyIdToken(token);
+    const decoded = await adminAuth.verifyIdToken(token);
 
     // Cookie expires when Firebase session expires
     const expires = new Date(decoded.exp! * 1000);
@@ -52,6 +52,7 @@ export async function POST(req: Request) {
     return res;
   } catch (err) {
     console.error("SET SESSION ERROR", err);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to start session";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

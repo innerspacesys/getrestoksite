@@ -177,6 +177,7 @@ export default function LoginClient() {
               type="email"
               className="input"
               placeholder="you@example.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -188,6 +189,7 @@ export default function LoginClient() {
               type="password"
               className="input"
               placeholder="••••••••"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
