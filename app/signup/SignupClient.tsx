@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import {
@@ -15,6 +15,7 @@ import {
 import { auth } from "@/lib/firebase";
 
 export default function SignupPage() {
+  const router = useRouter();
   const params = useSearchParams();
   const rawPlan = params.get("plan");
   const planKey = rawPlan ? rawPlan.toLowerCase().trim() : null;
@@ -34,6 +35,7 @@ export default function SignupPage() {
   const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [googleAuthToken, setGoogleAuthToken] = useState("");
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [existingAccountMessage, setExistingAccountMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
@@ -42,15 +44,52 @@ export default function SignupPage() {
     return err instanceof Error ? err.message : "Signup failed";
   }
 
-  async function applyGoogleUser(user: typeof auth.currentUser) {
+  const checkExistingAccount = useCallback(async (emailToCheck: string) => {
+    const res = await fetch("/api/auth/account-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailToCheck }),
+    });
+
+    const data = (await res.json()) as {
+      exists?: boolean;
+      hasWorkspace?: boolean;
+      error?: string;
+    };
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to check account status");
+    }
+
+    return data;
+  }, []);
+
+  const applyGoogleUser = useCallback(async (user: typeof auth.currentUser) => {
     if (!user) return;
+
+    const resolvedEmail = user.email || "";
+    if (resolvedEmail) {
+      const status = await checkExistingAccount(resolvedEmail);
+
+      if (status.hasWorkspace) {
+        setExistingAccountMessage(
+          "We found an existing Restok account for this email. Please log in instead of starting a new signup."
+        );
+        setGoogleConnected(false);
+        setGoogleAuthToken("");
+        await signOut(auth);
+        router.push(`/login?email=${encodeURIComponent(resolvedEmail)}`);
+        return;
+      }
+    }
 
     const token = await user.getIdToken(true);
     setGoogleAuthToken(token);
     setGoogleConnected(true);
-    setEmail((current) => current || user.email || "");
+    setExistingAccountMessage("");
+    setEmail((current) => current || resolvedEmail);
     setName((current) => current || user.displayName || "");
-  }
+  }, [checkExistingAccount, router]);
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
@@ -75,7 +114,7 @@ export default function SignupPage() {
       });
 
     return () => unsub();
-  }, []);
+  }, [applyGoogleUser]);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -176,6 +215,12 @@ export default function SignupPage() {
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
               Google account connected for signup. We&apos;ll use that account
               after payment instead of sending a password setup email.
+            </div>
+          )}
+
+          {existingAccountMessage && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+              {existingAccountMessage}
             </div>
           )}
 

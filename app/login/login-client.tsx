@@ -28,6 +28,7 @@ export default function LoginClient() {
   const [loading, setLoading] = useState(false);
 
   const showSetupMessage = params.get("setup") === "1";
+  const prefillsEmail = params.get("email") || "";
 
   function getErrorMessage(err: unknown) {
     return err instanceof Error ? err.message : "Failed to log in";
@@ -43,6 +44,12 @@ export default function LoginClient() {
     setTurnstileToken("");
     setTurnstileResetSignal((current) => current + 1);
   }
+
+  useEffect(() => {
+    if (prefillsEmail) {
+      setEmail(prefillsEmail);
+    }
+  }, [prefillsEmail]);
 
   useEffect(() => {
     getRedirectResult(auth)

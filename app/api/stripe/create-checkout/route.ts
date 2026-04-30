@@ -94,6 +94,19 @@ export async function POST(req: Request) {
       }
     }
 
+    const existingEmailProfile = await adminDb
+      .collection("users")
+      .where("email", "==", email)
+      .limit(1)
+      .get();
+
+    if (!existingEmailProfile.empty && existingEmailProfile.docs[0].data()?.orgId) {
+      return NextResponse.json(
+        { error: "An account already exists for this email. Please log in instead." },
+        { status: 409 }
+      );
+    }
+
     const priceMap: Record<Plan, Record<Interval, string | undefined>> = {
       basic: {
         monthly: process.env.STRIPE_MONTHLY_BASIC_PRICE_ID,
