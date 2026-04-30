@@ -14,6 +14,15 @@ type TourStep = {
 
 type Rect = { top: number; left: number; width: number; height: number } | null;
 
+const MODERN_MENU_TARGETS = new Set(["vendors", "locations", "users", "help"]);
+const MODERN_MOBILE_MENU_TARGETS = new Set([
+  "vendors",
+  "locations",
+  "users",
+  "settings",
+  "help",
+]);
+
 function getTourSteps(plan: string | null): TourStep[] {
   const base: TourStep[] = [
     {
@@ -138,6 +147,12 @@ export default function OnboardingWalkthrough() {
 
   useEffect(() => {
     if (!open || !currentStep?.target) {
+      window.dispatchEvent(
+        new CustomEvent("restok:onboarding-navigation", {
+          detail: { open: false, target: null, mobile: false },
+        })
+      );
+
       const frame = window.requestAnimationFrame(() => {
         setTargetRect(null);
       });
@@ -145,7 +160,23 @@ export default function OnboardingWalkthrough() {
       return () => window.cancelAnimationFrame(frame);
     }
 
-    if (window.innerWidth < 768) {
+    const isMobile = window.innerWidth < 768;
+    const targetKey = currentStep.target;
+    const shouldOpenMenu = isMobile
+      ? MODERN_MOBILE_MENU_TARGETS.has(targetKey)
+      : MODERN_MENU_TARGETS.has(targetKey);
+
+    window.dispatchEvent(
+      new CustomEvent("restok:onboarding-navigation", {
+        detail: {
+          open: shouldOpenMenu,
+          target: targetKey,
+          mobile: isMobile,
+        },
+      })
+    );
+
+    if (isMobile) {
       const frame = window.requestAnimationFrame(() => {
         setTargetRect(null);
       });
@@ -155,6 +186,8 @@ export default function OnboardingWalkthrough() {
 
     let highlightedTarget: HTMLElement | null = null;
     let highlightedScope: HTMLElement | null = null;
+    let retryFrame: number | null = null;
+    let retryCount = 0;
 
     function updateRect() {
       const target = document.querySelector<HTMLElement>(
@@ -163,8 +196,14 @@ export default function OnboardingWalkthrough() {
 
       if (!target) {
         setTargetRect(null);
+        if (retryCount < 8) {
+          retryCount += 1;
+          retryFrame = window.requestAnimationFrame(updateRect);
+        }
         return;
       }
+
+      retryCount = 0;
 
       const scope = target.closest<HTMLElement>("[data-onboarding-scope]");
       if (highlightedScope !== scope) {
@@ -195,6 +234,14 @@ export default function OnboardingWalkthrough() {
     return () => {
       highlightedTarget?.removeAttribute("data-onboarding-active-target");
       highlightedScope?.removeAttribute("data-onboarding-active-scope");
+      if (retryFrame) {
+        window.cancelAnimationFrame(retryFrame);
+      }
+      window.dispatchEvent(
+        new CustomEvent("restok:onboarding-navigation", {
+          detail: { open: false, target: null, mobile: false },
+        })
+      );
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
     };
@@ -276,8 +323,9 @@ export default function OnboardingWalkthrough() {
 
           {isMobileViewport && currentStep.target && (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
-              On mobile, use the navigation controls to open the right section
-              and visit this page.
+              {MODERN_MOBILE_MENU_TARGETS.has(currentStep.target)
+                ? "On mobile, use the More menu in the bottom navigation to reach this section."
+                : "On mobile, use the bottom navigation to move through the main sections."}
             </div>
           )}
 

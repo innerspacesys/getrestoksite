@@ -33,6 +33,12 @@ type MeResponse = {
   plan?: string;
 };
 
+type OnboardingNavRequest = {
+  target?: string | null;
+  open?: boolean;
+  mobile?: boolean;
+};
+
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", emoji: "📊", primary: true, desktop: true, mobile: true },
   { href: "/dashboard/items", label: "Items", emoji: "📦", primary: true, desktop: true, mobile: true },
@@ -72,6 +78,12 @@ export default function ModernDashboardShell({
     []
   );
 
+  const menuTargets = useMemo(() => new Set(["vendors", "locations", "users", "help"]), []);
+  const mobileMenuTargets = useMemo(
+    () => new Set(["vendors", "locations", "users", "settings", "help"]),
+    []
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -105,6 +117,39 @@ export default function ModernDashboardShell({
       unsub();
     };
   }, []);
+
+  useEffect(() => {
+    function handleOnboardingNavigation(event: Event) {
+      const detail = (event as CustomEvent<OnboardingNavRequest>).detail;
+      const target = detail?.target || null;
+      const shouldOpen = Boolean(detail?.open);
+      const isMobile = Boolean(detail?.mobile);
+
+      if (!shouldOpen || !target) {
+        setShowMore(false);
+        return;
+      }
+
+      if (isMobile) {
+        setShowMore(mobileMenuTargets.has(target));
+        return;
+      }
+
+      setShowMore(menuTargets.has(target));
+    }
+
+    window.addEventListener(
+      "restok:onboarding-navigation",
+      handleOnboardingNavigation as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "restok:onboarding-navigation",
+        handleOnboardingNavigation as EventListener
+      );
+    };
+  }, [menuTargets, mobileMenuTargets]);
 
   async function handleLogout() {
     try {
@@ -193,6 +238,7 @@ export default function ModernDashboardShell({
             <button
               type="button"
               onClick={() => setShowMore((current) => !current)}
+              data-onboarding-target="menu"
               className="inline-flex items-center rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900"
             >
               Menu
@@ -326,6 +372,7 @@ export default function ModernDashboardShell({
           <button
             type="button"
             onClick={() => setShowMore(true)}
+            data-onboarding-target="menu"
             className="rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200"
           >
             More
@@ -358,7 +405,7 @@ export default function ModernDashboardShell({
           <button
             type="button"
             onClick={() => setShowMore(true)}
-            data-onboarding-target="help"
+            data-onboarding-target="menu"
             className="flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <span className="text-base">⋯</span>
