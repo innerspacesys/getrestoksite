@@ -156,7 +156,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <nav className="flex flex-col gap-1 text-slate-700 dark:text-slate-200">
             <NavItem href="/dashboard" label="Dashboard" emoji="📊" active={pathname === "/dashboard"} onClick={onNavigate} />
             <NavItem href="/dashboard/items" label="Items" emoji="📦" active={pathname === "/dashboard/items"} onClick={onNavigate} />
@@ -171,7 +171,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
 
         {/* ---------- Bottom ---------- */}
-        <div className="mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/70">
+        <div className="mt-4 shrink-0 flex flex-col gap-2.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/70">
           {/* PLAN */}
           <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-3.5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">
