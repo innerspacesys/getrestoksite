@@ -106,7 +106,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
       {/* ---------- SIDEBAR ---------- */}
       <aside
         data-onboarding-scope="sidebar"
-        className="surface-panel sticky top-0 flex h-[100dvh] w-72 shrink-0 flex-col overflow-y-auto border-r border-white/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:h-screen md:overflow-hidden md:p-4 dark:border-white/10"
+        className="surface-panel sticky top-0 flex h-[100dvh] w-72 shrink-0 flex-col overflow-y-auto border-r border-white/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:h-screen md:w-full md:min-w-0 md:p-4 dark:border-white/10"
       >
         {isMobileDrawer && (
           <div className="mb-3 flex items-center justify-between rounded-3xl border border-white/40 bg-white/55 px-3.5 py-3 shadow-sm dark:border-white/10 dark:bg-slate-900/60 md:hidden">
@@ -171,7 +171,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
 
         {/* ---------- Bottom ---------- */}
-        <div className="sticky bottom-0 mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 bg-[color:var(--background-elevated)]/95 pt-4 backdrop-blur dark:border-slate-700/70">
+        <div className="mt-4 flex flex-col gap-2.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/70">
           {/* PLAN */}
           <div className="rounded-3xl border border-slate-200/80 bg-white/65 p-3.5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">

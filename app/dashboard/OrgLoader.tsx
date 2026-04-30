@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
   doc,
   collection,
@@ -37,7 +37,13 @@ export default function OrgLoader({ children }: { children: React.ReactNode }) {
 
       unsubUser = onSnapshot(doc(db, "users", u.uid), (snap) => {
         const data = snap.data();
-        if (!data?.orgId) return;
+        if (!data?.orgId || data?.disabled || data?.accountStatus === "deactivated") {
+          reset();
+          void signOut(auth).finally(() => {
+            router.push("/login?status=deactivated");
+          });
+          return;
+        }
 
         const orgId = data.orgId;
 

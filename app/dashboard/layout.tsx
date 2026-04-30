@@ -109,9 +109,9 @@ export default function DashboardLayout({
 
   return (
     <OrgLoader>
-      <div className="subtle-shell flex min-h-screen">
+      <div className="subtle-shell min-h-screen md:grid md:grid-cols-[clamp(16rem,22vw,18.5rem)_minmax(0,1fr)]">
         {/* DESKTOP SIDEBAR */}
-        <div className="hidden md:block">
+        <div className="hidden md:block md:min-w-0">
           <Sidebar />
         </div>
 
@@ -134,7 +134,7 @@ export default function DashboardLayout({
         )}
 
         {/* CONTENT */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <OnboardingWalkthrough />
           {/* MOBILE TOP BAR */}
           <div className="surface-panel mx-3 mt-3 flex items-center gap-3 rounded-3xl px-4 py-3 md:hidden">
@@ -179,7 +179,7 @@ export default function DashboardLayout({
             </div>
           )}
 
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
         </div>
       </div>
     </OrgLoader>

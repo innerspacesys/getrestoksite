@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   GoogleAuthProvider,
@@ -29,10 +29,61 @@ export default function LoginClient() {
 
   const showSetupMessage = params.get("setup") === "1";
   const prefillsEmail = params.get("email") || "";
+  const showDeactivatedNotice = params.get("status") === "deactivated";
 
   function getErrorMessage(err: unknown) {
     return err instanceof Error ? err.message : "Failed to log in";
   }
+
+  const getAccountStatus = useCallback(async (emailToCheck: string) => {
+    const res = await fetch("/api/auth/account-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailToCheck }),
+    });
+
+    return (await res.json().catch(() => null)) as
+      | {
+          disabled?: boolean;
+          accountStatus?: string;
+          scheduledDeletionAt?: string | null;
+        }
+      | null;
+  }, []);
+
+  const buildDeactivatedMessage = useCallback((scheduledDeletionAt?: string | null) => {
+    let daysRemaining = 30;
+
+    if (scheduledDeletionAt) {
+      const diff = Math.ceil(
+        (new Date(scheduledDeletionAt).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (Number.isFinite(diff) && diff > 0) {
+        daysRemaining = diff;
+      }
+    }
+
+    return `This account has been deactivated and no longer has access to a Restok workspace. To keep using this account, start your own subscription or ask an admin to re-add you. Otherwise, this account may be deleted in about ${daysRemaining} days.`;
+  }, []);
+
+  const resolveLoginError = useCallback(async (err: unknown) => {
+    const code =
+      typeof err === "object" && err && "code" in err
+        ? String((err as { code?: string }).code)
+        : "";
+
+    if (code === "auth/user-disabled" && email) {
+      const status = await getAccountStatus(email);
+
+      if (status?.disabled || status?.accountStatus === "deactivated") {
+        return buildDeactivatedMessage(status.scheduledDeletionAt);
+      }
+    }
+
+    return getErrorMessage(err);
+  }, [buildDeactivatedMessage, email, getAccountStatus]);
 
   function requireTurnstileToken() {
     if (turnstileEnabled && !turnstileToken) {
@@ -71,12 +122,12 @@ export default function LoginClient() {
       .catch((err: unknown) => {
         window.sessionStorage.removeItem(redirectTokenStorageKey);
         resetTurnstileChallenge();
-        setError(getErrorMessage(err));
+        void resolveLoginError(err).then(setError);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [router]);
+  }, [resolveLoginError, router]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -94,7 +145,7 @@ export default function LoginClient() {
       if (getErrorMessage(err).toLowerCase().includes("captcha")) {
         resetTurnstileChallenge();
       }
-      setError(getErrorMessage(err));
+      setError(await resolveLoginError(err));
     } finally {
       setLoading(false);
     }
@@ -127,7 +178,7 @@ export default function LoginClient() {
       if (getErrorMessage(err).toLowerCase().includes("captcha")) {
         resetTurnstileChallenge();
       }
-      setError(getErrorMessage(err));
+      setError(await resolveLoginError(err));
       setLoading(false);
     }
   }
@@ -161,6 +212,12 @@ export default function LoginClient() {
               <br />
               Please check your inbox and spam folder.
             </p>
+          </div>
+        )}
+
+        {showDeactivatedNotice && !error && (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+            {buildDeactivatedMessage()}
           </div>
         )}
 

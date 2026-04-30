@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { Timestamp } from "firebase-admin/firestore";
+
+const ACCOUNT_RETENTION_DAYS = 30;
 
 export async function POST(req: Request) {
   try {
@@ -84,11 +87,26 @@ export async function POST(req: Request) {
       }
     }
 
+    const removedAt = Timestamp.now();
+    const scheduledDeletionAt = Timestamp.fromDate(
+      new Date(Date.now() + ACCOUNT_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+    );
+
     await targetRef.update({
       orgId: null,
       role: "member",
-      removedAt: new Date(),
+      disabled: true,
+      accountStatus: "deactivated",
+      removedAt,
+      deactivatedAt: removedAt,
+      scheduledDeletionAt,
     });
+
+    await adminAuth.updateUser(uid, {
+      disabled: true,
+    });
+
+    await adminAuth.revokeRefreshTokens(uid);
 
     await adminDb.collection("auditLogs").add({
       type: "user_removed",
@@ -96,9 +114,13 @@ export async function POST(req: Request) {
       orgId,
       by: callerUid,
       createdAt: new Date(),
+      scheduledDeletionAt: scheduledDeletionAt.toDate(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      scheduledDeletionDays: ACCOUNT_RETENTION_DAYS,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     console.error("delete-user error:", err);

@@ -28,6 +28,13 @@ export async function GET(req: Request) {
     }
 
     const user = userSnap.data();
+    if (user?.disabled || user?.accountStatus === "deactivated") {
+      return NextResponse.json(
+        { error: "Account deactivated" },
+        { status: 403 }
+      );
+    }
+
     let orgData = null;
 
     if (user?.orgId) {

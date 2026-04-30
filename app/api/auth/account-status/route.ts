@@ -42,6 +42,9 @@ export async function POST(req: Request) {
     const user = normalizedMatch.docs[0].data() as {
       orgId?: string | null;
       role?: string;
+      disabled?: boolean;
+      accountStatus?: string | null;
+      scheduledDeletionAt?: { toDate?: () => Date } | null;
     };
 
     return NextResponse.json({
@@ -49,6 +52,10 @@ export async function POST(req: Request) {
       hasWorkspace: Boolean(user.orgId),
       orgId: user.orgId || null,
       role: user.role || null,
+      disabled: Boolean(user.disabled),
+      accountStatus: user.accountStatus || "active",
+      scheduledDeletionAt:
+        user.scheduledDeletionAt?.toDate?.().toISOString?.() || null,
     });
   } catch (err) {
     console.error("Account status error:", err);

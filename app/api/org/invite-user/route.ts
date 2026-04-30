@@ -104,10 +104,73 @@ export async function POST(req: Request) {
       .catch(() => null);
 
     if (existing) {
-      return NextResponse.json(
-        { error: "User already exists. Add existing users coming soon." },
-        { status: 400 }
+      const existingProfileRef = adminDb.doc(`users/${existing.uid}`);
+      const existingProfileSnap = await existingProfileRef.get();
+      const existingProfile = existingProfileSnap.data();
+
+      if (existingProfile?.orgId) {
+        return NextResponse.json(
+          { error: "User already belongs to a Restok workspace." },
+          { status: 400 }
+        );
+      }
+
+      await adminAuth.updateUser(existing.uid, { disabled: false });
+      await adminAuth.revokeRefreshTokens(existing.uid);
+
+      await existingProfileRef.set(
+        {
+          email,
+          orgId,
+          role: "member",
+          disabled: false,
+          accountStatus: "active",
+          reactivatedAt: Timestamp.now(),
+          removedAt: null,
+          deactivatedAt: null,
+          scheduledDeletionAt: null,
+        },
+        { merge: true }
       );
+
+      const tokenValue = crypto.randomBytes(32).toString("hex");
+
+      await adminDb
+        .collection("passwordSetupTokens")
+        .doc(tokenValue)
+        .set({
+          uid: existing.uid,
+          email,
+          createdAt: Timestamp.now(),
+          expiresAt: Timestamp.fromDate(
+            new Date(Date.now() + 1000 * 60 * 60 * 24)
+          ),
+        });
+
+      const setupUrl = `https://getrestok.com/set-password?token=${tokenValue}`;
+      const message = buildPasswordSetupEmail({
+        setupUrl,
+        orgName: org.name || "an organization",
+        invited: true,
+      });
+
+      await sendEmail({
+        from: "Restok <accounts@getrestok.com>",
+        to: email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+
+      await adminDb.collection("auditLogs").add({
+        type: "user_reactivated",
+        invited: email,
+        orgId,
+        by: requesterUid,
+        createdAt: new Date(),
+      });
+
+      return NextResponse.json({ success: true, reactivated: true });
     }
 
     // ---------------------------
