@@ -187,6 +187,7 @@ export default function OnboardingWalkthrough() {
     let highlightedTarget: HTMLElement | null = null;
     let highlightedScope: HTMLElement | null = null;
     let highlightedContainer: HTMLElement | null = null;
+    let highlightedLayer: HTMLElement | null = null;
     let retryFrame: number | null = null;
     let retryCount = 0;
 
@@ -208,6 +209,7 @@ export default function OnboardingWalkthrough() {
 
       const scope = target.closest<HTMLElement>("[data-onboarding-scope]");
       const container = target.closest<HTMLElement>("[data-onboarding-container]");
+      const layer = target.closest<HTMLElement>("[data-onboarding-layer]");
       if (highlightedScope !== scope) {
         highlightedScope?.removeAttribute("data-onboarding-active-scope");
         scope?.setAttribute("data-onboarding-active-scope", "true");
@@ -218,6 +220,12 @@ export default function OnboardingWalkthrough() {
         highlightedContainer?.removeAttribute("data-onboarding-active-container");
         container?.setAttribute("data-onboarding-active-container", "true");
         highlightedContainer = container;
+      }
+
+      if (highlightedLayer !== layer) {
+        highlightedLayer?.removeAttribute("data-onboarding-active-layer");
+        layer?.setAttribute("data-onboarding-active-layer", "true");
+        highlightedLayer = layer;
       }
 
       if (highlightedTarget !== target) {
@@ -243,6 +251,7 @@ export default function OnboardingWalkthrough() {
       highlightedTarget?.removeAttribute("data-onboarding-active-target");
       highlightedScope?.removeAttribute("data-onboarding-active-scope");
       highlightedContainer?.removeAttribute("data-onboarding-active-container");
+      highlightedLayer?.removeAttribute("data-onboarding-active-layer");
       if (retryFrame) {
         window.cancelAnimationFrame(retryFrame);
       }

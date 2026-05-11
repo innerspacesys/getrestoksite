@@ -87,6 +87,10 @@ select {
   isolation: isolate;
 }
 
+[data-onboarding-active-layer="true"] {
+  z-index: 85 !important;
+}
+
 button {
   cursor: pointer;
 }

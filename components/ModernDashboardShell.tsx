@@ -189,7 +189,10 @@ export default function ModernDashboardShell({
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 px-4 pt-4 md:px-6 md:pt-6">
+      <header
+        data-onboarding-layer="true"
+        className="sticky top-0 z-40 px-4 pt-4 md:px-6 md:pt-6"
+      >
         <div
           data-onboarding-container="true"
           className="surface-panel mx-auto flex max-w-7xl items-center gap-3 rounded-[30px] px-4 py-3 shadow-sm md:px-5"
@@ -263,6 +266,7 @@ export default function ModernDashboardShell({
               className="fixed inset-0 z-40 bg-slate-950/28 backdrop-blur-[1px]"
             />
             <motion.aside
+              data-onboarding-layer="true"
               data-onboarding-container="true"
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -389,6 +393,7 @@ export default function ModernDashboardShell({
       <nav
         data-onboarding-scope="navigation"
         data-onboarding-container="true"
+        data-onboarding-layer="true"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/88 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88 lg:hidden"
       >
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-2">

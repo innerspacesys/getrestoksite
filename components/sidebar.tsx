@@ -108,6 +108,7 @@ export default function Sidebar({ onNavigate, onSwitchNavMode }: SidebarProps) {
       <aside
         data-onboarding-scope="sidebar"
         data-onboarding-container="true"
+        data-onboarding-layer="true"
         className="surface-panel sticky top-0 flex h-[100dvh] w-72 shrink-0 flex-col overflow-y-auto border-r border-white/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:h-screen md:w-full md:min-w-0 md:p-4 dark:border-white/10"
       >
         {isMobileDrawer && (
