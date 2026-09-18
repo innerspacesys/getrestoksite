@@ -82,6 +82,7 @@ export default function ItemsPage() {
   const [locations, setLocations] = useState<LocationDoc[]>([]);
 
   const [showAdd, setShowAdd] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showVendorModal, setShowVendorModal] = useState(false);
@@ -273,6 +274,23 @@ export default function ItemsPage() {
     finally { setSavingItem(false); }
   }
 
+  async function handleQuickAdd(rows: { name: string; daysLast: number }[]) {
+    if (!user || !orgId) throw new Error("Not ready yet. Please try again.");
+    for (const row of rows) {
+      await addDoc(collection(db, "organizations", orgId, "items"), {
+        name: row.name,
+        vendorId: null,
+        locationId: null,
+        daysLast: row.daysLast,
+        reminderDays: 3,
+        description: "",
+        sku: "",
+        createdAt: serverTimestamp(),
+        createdByName: user.displayName || user.email,
+      });
+    }
+  }
+
   async function handleDeleteConfirmed() {
     if (!orgId || !deleteItem) return;
 
@@ -365,25 +383,47 @@ export default function ItemsPage() {
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold">Your Items</h2>
-        <button
-          onClick={() => {
-            if (atLimit) return;
-            resetForm();
-            setShowAdd(true);
-          }}
-          disabled={atLimit}
-          className={`rounded-2xl px-4 py-2.5 font-medium text-white ${
-            atLimit ? "bg-gray-400" : "bg-sky-600 hover:bg-sky-700"
-          }`}
-        >
-          + Add Item
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => { if (!atLimit) setShowQuickAdd(true); }}
+            disabled={atLimit}
+            className={`rounded-2xl border px-4 py-2.5 font-medium ${
+              atLimit
+                ? "cursor-not-allowed border-slate-200 text-slate-400"
+                : "border-sky-600 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
+            }`}
+          >
+            Quick add several
+          </button>
+          <button
+            onClick={() => {
+              if (atLimit) return;
+              resetForm();
+              setShowAdd(true);
+            }}
+            disabled={atLimit}
+            className={`rounded-2xl px-4 py-2.5 font-medium text-white ${
+              atLimit ? "bg-gray-400" : "bg-sky-600 hover:bg-sky-700"
+            }`}
+          >
+            + Add Item
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 space-y-4">
         {items.length === 0 && (
-          <div className="rounded-[28px] border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            No items yet.
+          <div className="rounded-[28px] border border-dashed border-slate-300 p-10 text-center dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Add your first few supplies</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+              Start with the things you reorder most. Just a name and how long each one usually lasts — Restok learns and fine-tunes the timing as you restock.
+            </p>
+            <button
+              onClick={() => setShowQuickAdd(true)}
+              className="mt-5 rounded-2xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-700"
+            >
+              Quick add several
+            </button>
           </div>
         )}
 
@@ -437,7 +477,7 @@ export default function ItemsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 md:max-w-[220px] md:flex-col">
-                <ItemActions item={item} />
+                <ItemActions item={item} now={now} />
                 <button
                   onClick={() => openEditModal(item)}
                   className="rounded-2xl bg-blue-500 px-4 py-2 text-white"
@@ -473,6 +513,16 @@ export default function ItemsPage() {
             onClose={() => setShowAdd(false)}
             onSubmit={handleAdd}
             onAddVendor={() => setShowVendorModal(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showQuickAdd && (
+          <QuickAddModal
+            remaining={itemLimit === Infinity ? Infinity : Math.max(0, itemLimit - items.length)}
+            onClose={() => setShowQuickAdd(false)}
+            onSave={handleQuickAdd}
           />
         )}
       </AnimatePresence>
@@ -590,6 +640,150 @@ export default function ItemsPage() {
         )}
       </AnimatePresence>
     </motion.main>
+  );
+}
+
+function QuickAddModal({
+  remaining,
+  onClose,
+  onSave,
+}: {
+  remaining: number;
+  onClose: () => void;
+  onSave: (rows: { name: string; daysLast: number }[]) => Promise<void>;
+}) {
+  const finiteRemaining = remaining !== Infinity;
+  const [rows, setRows] = useState<{ name: string; daysLast: string }[]>(
+    Array.from(
+      { length: Math.min(3, finiteRemaining ? Math.max(1, remaining) : 3) },
+      () => ({ name: "", daysLast: "" })
+    )
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const canAddRow = !finiteRemaining || rows.length < remaining;
+
+  function updateRow(index: number, patch: Partial<{ name: string; daysLast: string }>) {
+    setRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (saving) return;
+    const filled = rows.filter((row) => row.name.trim());
+    if (!filled.length) {
+      setError("Add at least one item name.");
+      return;
+    }
+    const parsed: { name: string; daysLast: number }[] = [];
+    for (const row of filled) {
+      const days = Number(row.daysLast);
+      if (!Number.isInteger(days) || days < 1) {
+        setError(`Enter how many days “${row.name.trim()}” lasts (a whole number).`);
+        return;
+      }
+      parsed.push({ name: row.name.trim(), daysLast: days });
+    }
+    if (finiteRemaining && parsed.length > remaining) {
+      setError(`Your plan has room for ${remaining} more ${remaining === 1 ? "item" : "items"}.`);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(parsed);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't add these items. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.form
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="mx-4 max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
+      >
+        <div>
+          <h2 className="text-xl font-semibold">Quick add several items</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Name and how many days each supply usually lasts. You can set vendors,
+            locations, and reminder timing later.
+            {finiteRemaining ? ` Room for ${remaining} more on your plan.` : ""}
+          </p>
+        </div>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        <div className="space-y-2">
+          <div className="flex gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="flex-1">Item name</span>
+            <span className="w-24">Days</span>
+            <span className="w-8" />
+          </div>
+          {rows.map((row, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                className="input flex-1"
+                placeholder="Paper towels, coffee…"
+                value={row.name}
+                onChange={(e) => updateRow(index, { name: e.target.value })}
+                aria-label={`Item ${index + 1} name`}
+              />
+              <input
+                className="input w-24"
+                type="number"
+                min="1"
+                placeholder="30"
+                value={row.daysLast}
+                onChange={(e) => updateRow(index, { daysLast: e.target.value })}
+                aria-label={`Item ${index + 1} days`}
+              />
+              <button
+                type="button"
+                onClick={() => setRows((c) => (c.length > 1 ? c.filter((_, i) => i !== index) : c))}
+                className="w-8 text-slate-400 hover:text-red-500"
+                aria-label={`Remove row ${index + 1}`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={!canAddRow}
+          onClick={() => setRows((c) => [...c, { name: "", daysLast: "" }])}
+          className="text-sm text-sky-600 hover:underline disabled:opacity-40 dark:text-sky-300"
+        >
+          + Add another row
+        </button>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="w-1/2 rounded-2xl border p-3">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-1/2 rounded-2xl bg-sky-600 p-3 text-white disabled:opacity-60"
+          >
+            {saving ? "Adding…" : "Add items"}
+          </button>
+        </div>
+      </motion.form>
+    </motion.div>
   );
 }
 

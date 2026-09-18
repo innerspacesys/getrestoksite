@@ -167,6 +167,11 @@ export async function POST(req: Request) {
     const cleanPlan = normalizePlan(nickname);
     const customerId = sub.customer as string;
 
+    // Keep access while a payment is still being retried (past_due); only a
+    // dead subscription (unpaid/paused/canceled/incomplete_expired) deactivates.
+    const ACTIVE_STATUSES = ["active", "trialing", "past_due"];
+    const isActive = ACTIVE_STATUSES.includes(sub.status);
+
     const orgSnap = await adminDb
       .collection("organizations")
       .where("stripeCustomerId", "==", customerId)
@@ -174,17 +179,34 @@ export async function POST(req: Request) {
       .get();
 
     if (!orgSnap.empty) {
-      // Reactivating (incl. resubscribing from the billing portal) restores
-      // access and clears any pending data-retention deletion deadline.
-      await orgSnap.docs[0].ref.update({
-        plan: cleanPlan,
-        active: true,
-        stripeSubscriptionId: sub.id,
-        canceledAt: null,
-        scheduledDeletionAt: null,
-      });
-
-      console.log("✅ Subscription active → plan:", cleanPlan);
+      const orgRef = orgSnap.docs[0].ref;
+      if (isActive) {
+        // Reactivating (incl. resubscribing from the billing portal) restores
+        // access and clears any pending data-retention deletion deadline.
+        await orgRef.update({
+          plan: cleanPlan,
+          active: true,
+          stripeSubscriptionId: sub.id,
+          canceledAt: null,
+          scheduledDeletionAt: null,
+        });
+        console.log("✅ Subscription active → plan:", cleanPlan, `(${sub.status})`);
+      } else {
+        // Deactivate with the same 30-day retention grace as an explicit
+        // cancellation, preserving an already-set deadline.
+        const existing = orgSnap.docs[0].data();
+        const RETENTION_DAYS = 30;
+        await orgRef.update({
+          plan: cleanPlan,
+          active: false,
+          stripeSubscriptionId: sub.id,
+          canceledAt: existing.canceledAt ?? Timestamp.now(),
+          scheduledDeletionAt:
+            existing.scheduledDeletionAt ??
+            Timestamp.fromDate(new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000)),
+        });
+        console.log("⚠️ Subscription inactive → deactivated:", sub.status);
+      }
     }
   }
 

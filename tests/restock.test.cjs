@@ -72,6 +72,39 @@ test("receiving preserves original creation date, records actor and rejects dupl
   assert.equal((await route.POST(request())).status, 409);
   assert.equal((await route.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ itemId: "other-org/item", action: "ordered" }) }))).status, 400);
 });
+test("snooze pauses reminders and learned estimates suggest a better day count", () => {
+  const snoozeIso = new Date(now + 2 * 86400000).toISOString();
+  assert.equal(stock.snoozedUntilMs({ ...item, snoozedUntil: snoozeIso }, now), now + 2 * 86400000);
+  assert.equal(stock.needsReorder({ ...item, snoozedUntil: snoozeIso }, now), false);
+  assert.equal(stock.needsReorder({ ...item, snoozedUntil: new Date(now - 86400000).toISOString() }, now), true);
+  assert.equal(stock.snoozedUntilMs({ ...item, snoozedUntil: stamp(now + 86400000) }, now), now + 86400000);
+  assert.equal(stock.learnedSuggestion({ daysLast: 30, learnedDays: 22, restockCount: 3 }), 22);
+  assert.equal(stock.learnedSuggestion({ daysLast: 30, learnedDays: 22, restockCount: 1 }), null);
+  assert.equal(stock.learnedSuggestion({ daysLast: 30, learnedDays: 29, restockCount: 4 }), null);
+  assert.equal(stock.learnedSuggestion({ daysLast: 10, learnedDays: 13, restockCount: 2 }), 13);
+  assert.equal(stock.learnedSuggestion({ daysLast: 10, learnedDays: 11, restockCount: 2 }), null);
+});
+test("receiving learns the actual restock interval (median) and clears any snooze", async () => {
+  const { db, data, ref } = database({ "organizations/org/items/paper": { name: "Paper", createdAt: stamp(now - 20 * 86400000), daysLast: 10, snoozedUntil: new Date(now).toISOString() } });
+  class ApiError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
+  const makeRoute = at => load("app/api/items/activity/route.ts", {
+    "@/lib/data/server": { Timestamp: { now: () => stamp(at) }, FieldValue: { delete: () => null } },
+    "@/lib/auth/server": { adminDb: db },
+    "@/lib/apiAuth": { ApiError, apiError: e => Response.json({ error: e.message }, { status: e.status || 500 }), requireMember: async () => ({ uid: "user", user: { name: "Tester" }, orgRef: ref("organizations/org") }) },
+  });
+  const receive = (route, start) => route.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ itemId: "paper", action: "received", expectedStart: start }) }));
+  assert.equal((await receive(makeRoute(now), now - 20 * 86400000)).status, 200);
+  let changed = data.get("organizations/org/items/paper");
+  assert.equal(changed.learnedDays, 20);
+  assert.equal(changed.restockCount, 1);
+  assert.deepEqual(changed.recentIntervals, [20]);
+  assert.equal(changed.snoozedUntil, null);
+  assert.equal((await receive(makeRoute(now + 10 * 86400000), changed.lastRestockedAt.toMillis())).status, 200);
+  changed = data.get("organizations/org/items/paper");
+  assert.equal(changed.restockCount, 2);
+  assert.deepEqual(changed.recentIntervals, [20, 10]);
+  assert.equal(changed.learnedDays, 15);
+});
 test("notification preferences reject invalid addresses and only update the caller", async () => {
   let saved;
   class ApiError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }

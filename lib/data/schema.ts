@@ -14,7 +14,7 @@ const definitions: Record<string, { table: string; fields: string[] }> = {
  users: { table: "profiles", fields: ["authUserId","orgId","email","name","phone","role","disabled","accountStatus","internalAdmin","notificationEmail","emailNotifications","lowStockAlerts","createdAt","updatedAt","removedAt","deactivatedAt","reactivatedAt","scheduledDeletionAt","lastNotificationTestAt","authProvider","theme"] },
  vendors: { table: "vendors", fields: ["name","email","website","hasPhysicalStore","createdAt","updatedAt"] },
  locations: { table: "locations", fields: ["name","address","description","isDepartment","createdAt","updatedAt"] },
- items: { table: "items", fields: ["name","daysLast","reminderDays","vendorId","locationId","description","sku","createdByName","createdAt","lastRestockedAt","lastAlertSentAt","orderStatus","orderedAt","orderedByName","reorderMethod"] },
+ items: { table: "items", fields: ["name","daysLast","reminderDays","vendorId","locationId","description","sku","createdByName","createdAt","lastRestockedAt","lastAlertSentAt","orderStatus","orderedAt","orderedByName","reorderMethod","snoozedUntil"] },
  activity: { table: "item_activity", fields: ["action","at","actorUid","actorName","previousStart","itemName"] },
  pendingSignups: { table: "pending_signups", fields: ["email","name","orgName","phone","plan","interval","googleUid","googleEmail","createdAt"] },
  passwordSetupTokens: { table: "password_setup_tokens", fields: ["uid","email","createdAt","expiresAt"] },
