@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/data/client";
 import {
   collection,
   addDoc,
@@ -12,7 +12,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
-} from "firebase/firestore";
+} from "@/lib/data/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOrgData } from "@/lib/useOrgData";
 import { PLANS } from "@/lib/plans";

@@ -1,4 +1,4 @@
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/auth/server";
 
 export class ApiError extends Error {
   constructor(message: string, public status = 400) { super(message); }

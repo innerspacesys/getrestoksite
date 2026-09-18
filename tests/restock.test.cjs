@@ -58,8 +58,8 @@ test("receiving preserves original creation date, records actor and rejects dupl
   const { db, data, ref } = database({ "organizations/org/items/paper": { name: "Paper", createdAt: stamp(now), daysLast: 10, orderStatus: "ordered" } });
   class ApiError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
   const route = load("app/api/items/activity/route.ts", {
-    "firebase-admin/firestore": { Timestamp: { now: () => stamp(now + 86400000) }, FieldValue: { delete: () => null } },
-    "@/lib/firebaseAdmin": { adminDb: db },
+    "@/lib/data/server": { Timestamp: { now: () => stamp(now + 86400000) }, FieldValue: { delete: () => null } },
+    "@/lib/auth/server": { adminDb: db },
     "@/lib/apiAuth": { ApiError, apiError: e => Response.json({ error: e.message }, { status: e.status || 500 }), requireMember: async () => ({ uid: "user", user: { name: "Tester" }, orgRef: ref("organizations/org") }) },
   });
   const request = () => new Request("http://localhost/api/items/activity", { method: "POST", body: JSON.stringify({ itemId: "paper", action: "received", expectedStart: now }) });
@@ -88,7 +88,7 @@ test("notification preferences reject invalid addresses and only update the call
 });
 test("new endpoints require valid sign-in and active membership", async () => {
   const { db } = database({ "users/user": { orgId: "org", disabled: true }, "organizations/org": { active: true } });
-  const auth = load("lib/apiAuth.ts", { "@/lib/firebaseAdmin": { adminDb: db, adminAuth: { verifyIdToken: async () => ({ uid: "user" }) } } });
+  const auth = load("lib/apiAuth.ts", { "@/lib/auth/server": { adminDb: db, adminAuth: { verifyIdToken: async () => ({ uid: "user" }) } } });
   await assert.rejects(auth.requireMember(new Request("http://localhost")), e => e.status === 401);
   await assert.rejects(auth.requireMember(new Request("http://localhost", { headers: { Authorization: "Bearer token" } })), e => e.status === 403);
 });
@@ -111,8 +111,8 @@ test("daily digest authenticates cron, groups supplies, excludes pending orders 
     runTransaction: async fn => fn({ get: r => r.get(), create: (r, value) => store.set(r.id, value) }),
   };
   const route = load("app/api/cron/check-items/route.ts", {
-    "@/lib/firebaseAdmin": { adminDb: db },
-    "firebase-admin/firestore": { Timestamp: { now: () => stamp(now) } },
+    "@/lib/auth/server": { adminDb: db },
+    "@/lib/data/server": { Timestamp: { now: () => stamp(now) } },
     "@/lib/inventory": { ...stock, needsReorder: i => stock.needsReorder(i, now), daysRemaining: i => stock.daysRemaining(i, now) },
     "@/lib/emailTemplates": load("lib/emailTemplates.ts"),
     "@/lib/email": { resolveNotificationEmail: email.notificationRecipient, sendEmail: async payload => { sends++; lastPayload = payload; } },

@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
+import { onAuthStateChanged, signOut } from "@/lib/auth/client";
 import {
   collection,
   getDocs,
   doc,
   getDoc,
   updateDoc,
-} from "firebase/firestore";
+} from "@/lib/data/client";
 import { useRouter } from "next/navigation";
 
 type Plan = "basic" | "pro" | "premium" | "enterprise";
@@ -116,7 +117,7 @@ export default function InternalPanel() {
 
   // -----------------------------
   // LOAD DATA
-  // - We list Firestore users
+  // - We list database users
   // - Then enrich each OWNER with org fields (plan/status/stripe IDs/etc)
   // -----------------------------
   async function loadUsers() {
@@ -181,10 +182,13 @@ export default function InternalPanel() {
   async function removeFromOrg(user: InternalUser) {
     if (!confirm(`Remove ${user.email} from their org?`)) return;
 
-    await updateDoc(doc(db, "users", user.id), {
-      orgId: null,
-      role: "member",
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return alert("Not authenticated.");
+    const response = await fetch("/api/internal/remove-membership", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, uid: user.id }),
     });
+    if (!response.ok) return alert("Unable to remove membership.");
 
     alert("User removed from org");
     await loadUsers();
@@ -209,7 +213,7 @@ export default function InternalPanel() {
 
   async function deleteUser(user: InternalUser) {
     const ok = confirm(
-      `DELETE ${user.email}?\n\nThis will delete:\n- Firestore user doc\n- Firebase Auth user\n- Their org (if they own it)\n\nThis cannot be undone.`
+      `DELETE ${user.email}?\n\nThis will delete:\n- database user doc\n- Supabase Auth user\n- Their org (if they own it)\n\nThis cannot be undone.`
     );
     if (!ok) return;
 
@@ -591,7 +595,7 @@ export default function InternalPanel() {
             </div>
 
             <p className="text-xs text-slate-500">
-              Creates a Firebase Auth user + org + Firestore user doc.
+              Creates a Supabase Auth user + org + database user doc.
             </p>
           </form>
         </div>

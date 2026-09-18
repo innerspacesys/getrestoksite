@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  GoogleAuthProvider,
   getRedirectResult,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-} from "firebase/auth";
-import { auth } from "../../lib/firebase";
+  startGoogleSignIn,
+} from "@/lib/auth/client";
+import { auth } from "@/lib/auth/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { finalizeClientSignIn } from "@/lib/clientAuth";
 import TurnstileWidget from "@/components/TurnstileWidget";
@@ -158,21 +156,8 @@ export default function LoginClient() {
     try {
       requireTurnstileToken();
 
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      const isMobile = window.innerWidth < 768;
-      if (isMobile) {
-        window.sessionStorage.setItem(redirectTokenStorageKey, turnstileToken);
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-
-      const result = await signInWithPopup(auth, provider);
-      await finalizeClientSignIn(result.user, {
-        turnstileToken: turnstileToken || undefined,
-      });
-      router.push("/dashboard");
+      window.sessionStorage.setItem(redirectTokenStorageKey, turnstileToken);
+      await startGoogleSignIn("/login");
     } catch (err: unknown) {
       window.sessionStorage.removeItem(redirectTokenStorageKey);
       if (getErrorMessage(err).toLowerCase().includes("captcha")) {
@@ -260,6 +245,7 @@ export default function LoginClient() {
             {loading ? "Logging in..." : "Log in"}
           </button>
         </form>
+        <Link href="/reset-password" className="mt-3 block text-center text-sm text-sky-600 dark:text-sky-300">Forgot your password?</Link>
 
         <div className="mt-4">
           <TurnstileWidget

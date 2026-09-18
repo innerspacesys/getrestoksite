@@ -58,8 +58,8 @@ export default function SetPasswordForm() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 6)
-      return setError("Password must be at least 6 characters");
+    if (password.length < 8)
+      return setError("Password must be at least 8 characters");
 
     if (password !== confirm)
       return setError("Passwords do not match");

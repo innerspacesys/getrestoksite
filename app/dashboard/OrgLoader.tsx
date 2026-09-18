@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
+import { onAuthStateChanged, signOut } from "@/lib/auth/client";
 import {
   doc,
   collection,
   onSnapshot,
   query,
   where,
-} from "firebase/firestore";
+} from "@/lib/data/client";
 import { useRouter } from "next/navigation";
 import { useOrgStore } from "@/lib/orgStore";
 
@@ -29,6 +30,7 @@ export default function OrgLoader({ children }: { children: React.ReactNode }) {
     let unsubLocations: Unsubscribe;
 
     const unsubAuth = onAuthStateChanged(auth, (u) => {
+      unsubUser?.(); unsubOrg?.(); unsubItems?.(); unsubVendors?.(); unsubMembers?.(); unsubLocations?.();
       if (!u) {
         reset();
         router.push("/login");

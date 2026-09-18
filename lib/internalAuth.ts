@@ -1,4 +1,4 @@
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { adminAuth } from "@/lib/auth/server";
 
 export async function requireInternalAdmin(idToken: string) {
   const decoded = await adminAuth.verifyIdToken(idToken);

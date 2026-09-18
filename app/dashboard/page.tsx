@@ -5,7 +5,7 @@ import { daysRemaining, needsReorder, stockLabel, type StockItem } from "@/lib/i
 import { useInventoryClock } from "@/lib/useInventoryClock";
 import ItemActions from "@/components/ItemActions";
 import { motion } from "framer-motion";
-import type { User } from "firebase/auth";
+import type { User } from "@/lib/auth/client";
 import { useOrgStore, type OrgItem } from "@/lib/orgStore";
 import { useEffect, useState } from "react";
 import {
@@ -17,8 +17,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/auth/client";
+import { onAuthStateChanged } from "@/lib/auth/client";
 
 type TimestampLike = {
   toDate: () => Date;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
-import { Timestamp } from "firebase-admin/firestore";
+import { adminAuth, adminDb } from "@/lib/auth/server";
+import { Timestamp } from "@/lib/data/server";
 
 const ACCOUNT_RETENTION_DAYS = 30;
 

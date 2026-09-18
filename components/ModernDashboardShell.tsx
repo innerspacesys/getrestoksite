@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/auth/client";
 import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
 import { useOrgData } from "@/lib/useOrgData";
 import ThemeToggle from "./ThemeToggle";

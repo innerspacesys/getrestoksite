@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebaseAdmin";
-import { Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/auth/server";
+import { Timestamp } from "@/lib/data/server";
 
 export async function POST(req: Request) {
   try {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
-import { Timestamp } from "firebase-admin/firestore";
+import { adminDb, adminAuth } from "@/lib/auth/server";
+import { Timestamp } from "@/lib/data/server";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
 import { buildPasswordSetupEmail } from "@/lib/emailTemplates";

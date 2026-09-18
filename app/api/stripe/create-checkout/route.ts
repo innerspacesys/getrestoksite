@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/auth/server";
 import { getRequestIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 type Plan = "basic" | "pro" | "premium" ;

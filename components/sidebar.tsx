@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { auth, db } from "../lib/firebase";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
 import { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot } from "@/lib/data/client";
 import AppVersionLabel from "./AppVersionLabel";
 
 type Plan = "basic" | "pro" | "premium" | "enterprise";

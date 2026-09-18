@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/auth/server";
 
 /**
  * INTERNAL: Delete user (and org if owner)
- * Requires Firebase custom claim: internalAdmin === true
+ * Requires server-managed admin role: internalAdmin === true
  */
 export async function POST(req: Request) {
   try {

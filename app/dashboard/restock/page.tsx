@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/auth/client";
 import { useOrgData } from "@/lib/useOrgData";
 import { daysRemaining, needsReorder, stockLabel, type StockItem } from "@/lib/inventory";
 import { useInventoryClock } from "@/lib/useInventoryClock";

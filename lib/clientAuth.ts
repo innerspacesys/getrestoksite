@@ -1,7 +1,7 @@
 "use client";
 
-import type { User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import type { User } from "@/lib/auth/client";
+import { auth } from "@/lib/auth/client";
 
 type FinalizeClientSignInOptions = {
   turnstileToken?: string;

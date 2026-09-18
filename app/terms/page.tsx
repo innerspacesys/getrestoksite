@@ -141,7 +141,7 @@ We may share information with:
 • In connection with a business transfer (e.g., merger, acquisition), subject to appropriate safeguards
 
 Data Storage & Security
-Restok™ may use cloud infrastructure providers (including Firebase) to store and process data. We implement reasonable
+Restok™ may use cloud infrastructure providers (including Supabase) to store and process data. We implement reasonable
 administrative, technical, and physical safeguards to protect information. No system can be guaranteed 100% secure.
 
 Data Retention

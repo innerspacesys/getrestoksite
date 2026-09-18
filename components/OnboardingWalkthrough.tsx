@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/auth/client";
 import { useOrgData } from "@/lib/useOrgData";
 
 type TourStep = {

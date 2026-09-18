@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "firebase/auth";
-import { auth, db } from "../../../lib/firebase";
+import type { User } from "@/lib/auth/client";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
 import {
   EmailAuthProvider,
   deleteUser,
@@ -12,8 +13,8 @@ import {
   reauthenticateWithCredential,
   updatePassword,
   updateProfile,
-} from "firebase/auth";
-import { deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
+} from "@/lib/auth/client";
+import { doc, onSnapshot, updateDoc } from "@/lib/data/client";
 import { motion } from "framer-motion";
 import { PLANS } from "@/lib/plans";
 
@@ -275,7 +276,6 @@ export default function SettingsPage() {
       const cred = EmailAuthProvider.credential(user.email!, deletePassword);
       await reauthenticateWithCredential(user, cred);
 
-      await deleteDoc(doc(db, "users", user.uid));
       await deleteUser(user);
       router.push("/");
     } catch (err: unknown) {

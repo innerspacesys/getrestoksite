@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
+import { adminDb, adminAuth } from "@/lib/auth/server";
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {

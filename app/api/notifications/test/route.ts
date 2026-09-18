@@ -1,5 +1,5 @@
-import { Timestamp } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { Timestamp } from "@/lib/data/server";
+import { adminDb } from "@/lib/auth/server";
 import { apiError, ApiError, requireMember } from "@/lib/apiAuth";
 import { resolveNotificationEmail, sendEmail } from "@/lib/email";
 import { buildTestNotificationEmail } from "@/lib/emailTemplates";

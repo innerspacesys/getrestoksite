@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/auth/server";
 
 const ALLOWED_ROLES = ["admin", "member"] as const;
 type AssignableRole = (typeof ALLOWED_ROLES)[number];

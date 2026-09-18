@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { adminAuth } from "@/lib/auth/server";
 import { getRequestIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function POST(req: Request) {
@@ -33,10 +33,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Verify Firebase token
+    // Verify Supabase token
     const decoded = await adminAuth.verifyIdToken(token);
 
-    // Cookie expires when Firebase session expires
+    // Cookie expires when Supabase session expires
     const expires = new Date(decoded.exp! * 1000);
 
     const res = NextResponse.json({ ok: true });

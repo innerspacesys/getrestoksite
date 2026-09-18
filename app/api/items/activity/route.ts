@@ -1,5 +1,5 @@
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { FieldValue, Timestamp } from "@/lib/data/server";
+import { adminDb } from "@/lib/auth/server";
 import { apiError, ApiError, requireMember } from "@/lib/apiAuth";
 
 export async function POST(req: Request) {

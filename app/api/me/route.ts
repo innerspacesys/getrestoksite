@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/auth/server";
 
 export async function GET(req: Request) {
   try {
@@ -14,11 +14,11 @@ export async function GET(req: Request) {
 
     const token = authHeader.replace("Bearer ", "").trim();
 
-    // Verify Firebase ID Token
+    // Verify Supabase access token
     const decoded = await adminAuth.verifyIdToken(token);
     const uid = decoded.uid;
 
-    // Load user from Firestore
+    // Load user from database
     const userSnap = await adminDb.collection("users").doc(uid).get();
     if (!userSnap.exists) {
       return NextResponse.json(

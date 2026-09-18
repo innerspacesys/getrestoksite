@@ -1,4 +1,4 @@
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/auth/client";
 import type { StockItem } from "@/lib/inventory";
 
 export async function recordItemActivity(item: StockItem & { id: string }, action: "ordered" | "received" | "cancelled") {

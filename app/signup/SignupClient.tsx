@@ -6,13 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import {
-  GoogleAuthProvider,
   getRedirectResult,
-  signInWithPopup,
-  signInWithRedirect,
+  startGoogleSignIn,
   signOut,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
+} from "@/lib/auth/client";
+import { auth } from "@/lib/auth/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -164,17 +162,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      const isMobile = window.innerWidth < 768;
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-
-      const result = await signInWithPopup(auth, provider);
-      await applyGoogleUser(result.user);
+      await startGoogleSignIn(`/signup?plan=${selectedPlan}`);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {

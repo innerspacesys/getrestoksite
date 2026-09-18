@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
-import { getAuth } from "firebase-admin/auth";
-import { Timestamp } from "firebase-admin/firestore";
+import { adminDb, adminAuth } from "@/lib/auth/server";
+import { Timestamp } from "@/lib/data/server";
 
 // Seat limits (same logic as UI)
 const PLAN_LIMITS: Record<string, number | "infinite"> = {
@@ -103,7 +102,7 @@ export async function POST(req: Request) {
     // ---------------------------
     //  CREATE FIREBASE AUTH USER
     // ---------------------------
-    const userRecord = await getAuth().createUser({
+    const userRecord = await adminAuth.createUser({
       email,
       password,
     });

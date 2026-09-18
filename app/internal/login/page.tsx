@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
-} from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+} from "@/lib/auth/client";
+import { doc, getDoc } from "@/lib/data/client";
 import { useRouter } from "next/navigation";
 
 export default function InternalLogin() {

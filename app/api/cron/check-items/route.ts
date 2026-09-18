@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { Timestamp } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { Timestamp } from "@/lib/data/server";
+import { adminDb } from "@/lib/auth/server";
 import { resolveNotificationEmail, sendEmail } from "@/lib/email";
 import { buildStockDigestEmail } from "@/lib/emailTemplates";
 import { daysRemaining, needsReorder } from "@/lib/inventory";

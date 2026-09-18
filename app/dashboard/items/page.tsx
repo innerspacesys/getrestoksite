@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { User } from "firebase/auth";
-import { auth, db } from "../../../lib/firebase";
+import type { User } from "@/lib/auth/client";
+import { auth } from "@/lib/auth/client";
+import { db } from "@/lib/data/client";
 import {
   addDoc,
   collection,
@@ -11,8 +12,8 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-} from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+} from "@/lib/data/client";
+import { onAuthStateChanged } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ItemActions from "@/components/ItemActions";
