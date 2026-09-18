@@ -10,7 +10,7 @@ export class Timestamp {
 }
 export const FieldValue = { delete: () => null, serverTimestamp: () => Timestamp.now() };
 const definitions: Record<string, { table: string; fields: string[] }> = {
- organizations: { table: "organizations", fields: ["name","ownerId","plan","active","stripeCustomerId","stripeSubscriptionId","createdAt","canceledAt","status","beta","manualPlanOverride","internalNotes"] },
+ organizations: { table: "organizations", fields: ["name","ownerId","plan","active","stripeCustomerId","stripeSubscriptionId","createdAt","canceledAt","scheduledDeletionAt","status","beta","manualPlanOverride","internalNotes"] },
  users: { table: "profiles", fields: ["authUserId","orgId","email","name","phone","role","disabled","accountStatus","internalAdmin","notificationEmail","emailNotifications","lowStockAlerts","createdAt","updatedAt","removedAt","deactivatedAt","reactivatedAt","scheduledDeletionAt","lastNotificationTestAt","authProvider","theme"] },
  vendors: { table: "vendors", fields: ["name","email","website","hasPhysicalStore","createdAt","updatedAt"] },
  locations: { table: "locations", fields: ["name","address","description","isDepartment","createdAt","updatedAt"] },

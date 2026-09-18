@@ -14,6 +14,11 @@ type OrgState = {
   plan: string | null;
   role: "owner" | "admin" | "member" | null;
 
+  // null while the org row is still resolving; true/false once it is known.
+  orgActive: boolean | null;
+  // ISO string: when a canceled org's data is scheduled to be deleted.
+  scheduledDeletionAt: string | null;
+
   items: OrgItem[];
   vendors: OrgVendor[];
   members: OrgMember[];
@@ -30,6 +35,9 @@ export const useOrgStore = create<OrgState>((set) => ({
   plan: null,
   role: null,
 
+  orgActive: null,
+  scheduledDeletionAt: null,
+
   items: [],
   vendors: [],
   members: [],
@@ -43,6 +51,8 @@ export const useOrgStore = create<OrgState>((set) => ({
       orgId: null,
       plan: null,
       role: null,
+      orgActive: null,
+      scheduledDeletionAt: null,
       items: [],
       vendors: [],
       members: [],

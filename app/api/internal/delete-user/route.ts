@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // DELETE FIREBASE AUTH USER
+    // DELETE AUTH USER
     // --------------------------------------------------
     await adminAuth.deleteUser(uid);
 

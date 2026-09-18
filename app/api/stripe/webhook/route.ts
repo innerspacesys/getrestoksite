@@ -153,7 +153,10 @@ export async function POST(req: Request) {
   // =========================================================================
   // SUBSCRIPTION UPDATED → KEEP PLAN & ACTIVE STATUS IN SYNC
   // =========================================================================
-  if (event.type === "customer.subscription.updated") {
+  if (
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.created"
+  ) {
     const sub = event.data.object as Stripe.Subscription;
 
     const nickname =
@@ -171,13 +174,17 @@ export async function POST(req: Request) {
       .get();
 
     if (!orgSnap.empty) {
+      // Reactivating (incl. resubscribing from the billing portal) restores
+      // access and clears any pending data-retention deletion deadline.
       await orgSnap.docs[0].ref.update({
         plan: cleanPlan,
         active: true,
         stripeSubscriptionId: sub.id,
+        canceledAt: null,
+        scheduledDeletionAt: null,
       });
 
-      console.log("✅ Subscription updated → plan:", cleanPlan);
+      console.log("✅ Subscription active → plan:", cleanPlan);
     }
   }
 
@@ -195,9 +202,15 @@ export async function POST(req: Request) {
       .get();
 
     if (!orgSnap.empty) {
+      // Keep the org's data for a 30-day grace window before any deletion, so an
+      // accidental cancellation can be undone by resubscribing.
+      const RETENTION_DAYS = 30;
       await orgSnap.docs[0].ref.update({
         active: false,
         canceledAt: Timestamp.now(),
+        scheduledDeletionAt: Timestamp.fromDate(
+          new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000)
+        ),
         stripeSubscriptionId: null,
       });
 

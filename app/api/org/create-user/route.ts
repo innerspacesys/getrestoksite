@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     // ---------------------------
-    //  CREATE FIREBASE AUTH USER
+    //  CREATE AUTH USER
     // ---------------------------
     const userRecord = await adminAuth.createUser({
       email,
