@@ -74,6 +74,9 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [savedNotificationEmail, setSavedNotificationEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -116,6 +119,7 @@ export default function SettingsPage() {
         name?: string;
         emailNotifications?: boolean;
         lowStockAlerts?: boolean;
+        notificationEmail?: string;
         orgId?: string;
         role?: "owner" | "admin" | "member";
       };
@@ -123,6 +127,8 @@ export default function SettingsPage() {
       setName(data.name || user.displayName || "");
       setEmailNotifications(data.emailNotifications ?? true);
       setLowStockAlerts(data.lowStockAlerts ?? true);
+      setNotificationEmail(data.notificationEmail || "");
+      setSavedNotificationEmail(data.notificationEmail || "");
 
       if (data.orgId) {
         setOrgId(data.orgId);
@@ -202,16 +208,31 @@ export default function SettingsPage() {
     setError(null);
 
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        emailNotifications,
-        lowStockAlerts,
+      const response = await fetch("/api/notifications/preferences", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ notificationEmail, emailNotifications, lowStockAlerts }),
       });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setSavedNotificationEmail(notificationEmail.trim());
       setPrefsMsg("Notification preferences saved.");
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to save preferences."));
     }
 
     setSavingPrefs(false);
+  }
+
+  async function handleTestNotification() {
+    if (!user) return;
+    setSendingTest(true); setPrefsMsg(null); setError(null);
+    try {
+      const response = await fetch("/api/notifications/test", { method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setPrefsMsg(`Test notification sent to ${result.to}. Check your inbox and spam folder.`);
+    } catch (err) { setError(getErrorMessage(err, "Unable to send test.")); }
+    finally { setSendingTest(false); }
   }
 
   async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
@@ -405,26 +426,30 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-        <section className="surface-card rounded-[30px] p-6">
+        <section id="notifications" className="surface-card rounded-[30px] p-6">
           <h2 className="text-xl font-semibold">Notifications</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Control when Restok emails you about low or due items. More advanced
-            notification routing can come later without changing your data.
+            Get one daily summary when supplies need attention. Choose where your supply reminders arrive.
           </p>
 
           <div className="mt-5 space-y-4">
+            <div>
+              <label htmlFor="notification-email" className="block text-sm font-medium">Notification email</label>
+              <input id="notification-email" type="email" maxLength={254} className="input mt-2" placeholder={user.email || "Use sign-in email"} value={notificationEmail} onChange={e => setNotificationEmail(e.target.value)} aria-describedby="notification-email-help" />
+              <p id="notification-email-help" className="mt-2 text-sm text-slate-500">Leave blank to use {user.email}. Login, password resets, and account messages still go to your sign-in email.</p>
+            </div>
             {[
               {
                 label: "Email Notifications",
                 value: emailNotifications,
                 setter: setEmailNotifications,
-                desc: "Receive item-related notification emails at your account address.",
+                desc: "Receive a daily digest at your notification email address.",
               },
               {
                 label: "Low Stock Alerts",
                 value: lowStockAlerts,
                 setter: setLowStockAlerts,
-                desc: "Show item warnings and allow reminder emails for items running low or due.",
+                desc: "Include items that have reached their reminder window or are overdue.",
               },
             ].map((option) => (
               <div
@@ -441,6 +466,7 @@ export default function SettingsPage() {
                   <label className="relative inline-flex cursor-pointer">
                     <input
                       type="checkbox"
+                      aria-label={option.label}
                       checked={option.value}
                       onChange={(e) => option.setter(e.target.checked)}
                       className="peer sr-only"
@@ -454,11 +480,14 @@ export default function SettingsPage() {
 
             <button
               onClick={handleSavePrefs}
+              disabled={savingPrefs || sendingTest}
               className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-white md:w-auto"
             >
               {savingPrefs ? "Saving…" : "Save Preferences"}
             </button>
 
+            <button onClick={handleTestNotification} disabled={sendingTest || savingPrefs || notificationEmail.trim() !== savedNotificationEmail} className="button-secondary ml-2 disabled:opacity-50">{sendingTest ? "Sending…" : "Send test notification"}</button>
+            {notificationEmail.trim() !== savedNotificationEmail && <p className="text-sm text-slate-500">Save your email before sending a test.</p>}
             {prefsMsg && (
               <p className="text-sm text-emerald-600 dark:text-emerald-400">
                 {prefsMsg}

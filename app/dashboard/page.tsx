@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { daysRemaining, needsReorder, stockLabel, type StockItem } from "@/lib/inventory";
+import { useInventoryClock } from "@/lib/useInventoryClock";
+import ItemActions from "@/components/ItemActions";
 import { motion } from "framer-motion";
 import type { User } from "firebase/auth";
 import { useOrgStore, type OrgItem } from "@/lib/orgStore";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -21,14 +24,14 @@ type TimestampLike = {
   toDate: () => Date;
 };
 
-type DashboardItem = OrgItem & {
+type DashboardItem = OrgItem & StockItem & {
   name?: string;
   daysLast?: number;
   createdAt?: TimestampLike | null;
 };
 
 export default function DashboardHome() {
-  const router = useRouter();
+  const now = useInventoryClock();
 
   // ------------------------------
   // ⭐ Pull everything from global store
@@ -45,97 +48,23 @@ export default function DashboardHome() {
   }, []);
 
   const items = useOrgStore((s) => s.items);
-  const plan = useOrgStore((s) => s.plan);
   const loading = useOrgStore((s) => s.loading);
 
-  const [attentionItems, setAttentionItems] = useState<DashboardItem[]>([]);
-  const [showAttentionModal, setShowAttentionModal] = useState(false);
 
   // ------------------------------
   // UTILITIES
   // ------------------------------
-  function needsAttention(item: DashboardItem) {
-    if (!item.createdAt?.toDate) return false;
+  const typedItems = items as DashboardItem[];
+  const actionItems = typedItems.filter(item => needsReorder(item, now)).sort((a, b) => (daysRemaining(a, now) ?? Infinity) - (daysRemaining(b, now) ?? Infinity));
+  const pendingItems = typedItems.filter(item => item.orderStatus === "ordered");
+  const stats = {
+    totalItems: items.length,
+    runningLow: actionItems.filter(item => (daysRemaining(item, now) ?? 0) > 0).length,
+    dueToday: actionItems.filter(item => (daysRemaining(item, now) ?? 1) <= 0).length,
+  };
+  const graphData = typedItems.filter(item => daysRemaining(item, now) !== null).map(item => ({ name: item.name, daysLeft: Math.max(daysRemaining(item, now)!, 0) }));
 
-    const created = item.createdAt.toDate();
-    const diffDays = Math.floor(
-      (Date.now() - created.getTime()) / 86400000
-    );
-
-    return (item.daysLast ?? 0) - diffDays <= 3;
-  }
-
-  const stats = useMemo(() => {
-    let runningLow = 0;
-    let dueToday = 0;
-
-    items.forEach((item) => {
-      const dashboardItem = item as DashboardItem;
-      if (!dashboardItem.createdAt?.toDate) return;
-
-      const created = dashboardItem.createdAt.toDate();
-      const emptyDate = new Date(created);
-      emptyDate.setDate(emptyDate.getDate() + (dashboardItem.daysLast ?? 0));
-
-      const diffDays = Math.ceil(
-        (emptyDate.getTime() - Date.now()) / 86400000
-      );
-
-      if (diffDays <= 3) runningLow++;
-      if (diffDays === 0) dueToday++;
-    });
-
-    return {
-      totalItems: items.length,
-      runningLow,
-      dueToday,
-    };
-  }, [items]);
-
-  const graphData = useMemo(() => {
-    return items
-      .map((item) => {
-        const dashboardItem = item as DashboardItem;
-        if (!dashboardItem.createdAt?.toDate) return null;
-
-        const created = dashboardItem.createdAt.toDate();
-        const diff = Math.floor(
-          (Date.now() - created.getTime()) / 86400000
-        );
-
-        return {
-          name: dashboardItem.name,
-          daysLeft: Math.max((dashboardItem.daysLast ?? 0) - diff, 0),
-        };
-      })
-      .filter(Boolean);
-  }, [items]);
-
-  // ------------------------------
-  // ATTENTION POPUP
-  // ------------------------------
-  useEffect(() => {
-    if (!items.length) return;
-
-    const isProOrHigher =
-      plan === "pro" || plan === "premium" || plan === "enterprise";
-    if (!isProOrHigher) return;
-
-    if (!user?.uid) return;
-
-    const key = `restok_attention_dismissed_${user.uid}`;
-    if (sessionStorage.getItem(key)) return;
-
-    const needs = items
-      .map((item) => item as DashboardItem)
-      .filter(needsAttention);
-    if (!needs.length) return;
-
-    setAttentionItems(needs);
-    setShowAttentionModal(true);
-  }, [items, plan, user]);
-
-  const currentUser = auth.currentUser;
+  const currentUser = user;
 
 const displayName =
   currentUser?.displayName ||
@@ -197,8 +126,19 @@ const displayName =
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         <Stat label="Total Items" value={stats.totalItems} tone="default" />
         <Stat label="Running Low" value={stats.runningLow} tone="amber" />
-        <Stat label="Due Today" value={stats.dueToday} tone="red" />
+        <Stat label="Due / overdue" value={stats.dueToday} tone="red" />
       </div>
+
+      <section className="surface-card mt-8 rounded-[30px] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">What needs doing today</h2><Link href="/dashboard/restock" className="button-secondary">All supplies</Link></div>
+        {!actionItems.length && <p className="mt-4 text-slate-500">{items.length ? "You're caught up. No supplies need reordering today." : "Add your first supply to start tracking reminders."}</p>}
+        <div className="mt-4 space-y-4">{actionItems.slice(0, 8).map(item => <article key={item.id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{item.name}</h3><span className="text-sm text-amber-700 dark:text-amber-300">{stockLabel(item, now)}</span></div><ItemActions item={item} /></article>)}</div>
+        {actionItems.length > 8 && <Link href="/dashboard/restock" className="mt-4 block text-sky-600">View all {actionItems.length} supplies needing attention</Link>}
+        <h3 className="mt-7 text-lg font-semibold">Awaiting delivery ({pendingItems.length})</h3>
+        {!pendingItems.length && <p className="mt-2 text-sm text-slate-500">No pending orders.</p>}
+        <div className="mt-3 space-y-4">{pendingItems.slice(0, 5).map(item => <article key={item.id} className="rounded-2xl border border-sky-200 p-4 dark:border-sky-900"><h4 className="font-semibold">{item.name}</h4><p className="text-sm text-slate-500">Supply estimate: {stockLabel(item, now).toLowerCase()}</p><ItemActions item={item} /></article>)}</div>
+        {pendingItems.length > 5 && <Link href="/dashboard/restock" className="mt-4 block text-sky-600">View all pending orders</Link>}
+      </section>
 
       {/* GRAPH */}
       <div className="surface-card mt-8 rounded-[30px] p-6 md:p-7">
@@ -246,64 +186,6 @@ const displayName =
         </div>
       </div>
 
-      {/* ATTENTION MODAL */}
-      {showAttentionModal && (
-        <motion.div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <motion.div
-            initial={{ scale: 0.95, y: 10 }}
-            animate={{ scale: 1, y: 0 }}
-            className="surface-panel w-full max-w-lg rounded-[30px] p-6"
-          >
-            <h2 className="text-lg font-semibold">
-              🔔 Take a look at these items
-            </h2>
-
-            <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
-              {attentionItems.map((i) => (
-                <div
-                  key={i.id}
-                  className="rounded-2xl bg-slate-100 px-3 py-2 dark:bg-slate-700/80"
-                >
-                  {i.name}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  sessionStorage.setItem(
-                    `restok_attention_dismissed_${user?.uid}`,
-                    "true"
-                  );
-                  setShowAttentionModal(false);
-                }}
-                className="button-secondary w-1/2 !rounded-2xl !px-4 !py-2"
-              >
-                Later
-              </button>
-
-              <button
-                onClick={() => {
-                  sessionStorage.setItem(
-                    `restok_attention_dismissed_${user?.uid}`,
-                    "true"
-                  );
-                  const ids = attentionItems.map((item) => item.id).join(",");
-                  router.push(`/dashboard/restock?review=${ids}`);
-                }}
-                className="button-primary w-1/2 !rounded-2xl !px-4 !py-2"
-              >
-                Review items
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
     </motion.main>
   );
 }

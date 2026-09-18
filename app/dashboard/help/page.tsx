@@ -55,7 +55,7 @@ export default function HelpPage() {
               {
                 title: "2. Add the items you reorder most often",
                 body:
-                  "Start with the products that actually cause pain when they run out. Set a realistic number of days each item usually lasts.",
+                  "Start with the products that actually cause pain when they run out. Set how many days each supply usually lasts and how early you want its reminder.",
               },
               {
                 title: "3. Add locations if they help your workflow",
@@ -65,7 +65,7 @@ export default function HelpPage() {
               {
                 title: "4. Use Restock as your action queue",
                 body:
-                  "Restock is where the tracking becomes useful. It gathers items that need attention so you can reorder them through saved vendor details.",
+                  "Use saved vendor details to place an order, then mark it ordered. When supplies arrive, mark them received to restart the countdown. History shows who ordered and restocked each item.",
               },
               {
                 title: isProPlus
@@ -78,7 +78,7 @@ export default function HelpPage() {
               {
                 title: "6. Fine-tune Settings last",
                 body:
-                  "Once the workspace is running, use Settings for profile changes, notifications, billing access, and account security.",
+                  "Choose a notification email in Settings, save it, and send a test. Leave it blank to use your sign-in email. Supply alerts arrive as one daily digest; pending orders are excluded.",
               },
             ].map((step) => (
               <div

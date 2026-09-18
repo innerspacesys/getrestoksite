@@ -459,3 +459,18 @@ export function buildInboundForwardEmail({
   };
 }
 
+
+
+export function buildStockDigestEmail(orgName: string, items: Array<{ name: string; daysLeft: number; vendor: string; location: string }>) {
+  const subject = `Restok: ${items.length} ${items.length === 1 ? "supply needs" : "supplies need"} attention`;
+  const lines = items.map(item => `${item.name}: ${item.daysLeft < 0 ? `${Math.abs(item.daysLeft)} days overdue` : item.daysLeft === 0 ? "due today" : `${item.daysLeft} days left`} • ${item.vendor} • ${item.location}`);
+  return {
+    subject,
+    html: renderEmailLayout({ eyebrow: "Your daily supply check", title: subject.replace("Restok: ", ""), intro: `Here is what needs a look at ${escapeHtml(orgName)}. Items already ordered are excluded.`, bodyHtml: lines.map(line => `<p style="padding:14px;background:#f1f5f9;border-radius:12px;line-height:1.6">${escapeHtml(line)}</p>`).join(""), cta: { label: "Review supplies", href: `${APP_URL}/dashboard/restock` }, footerNote: `Manage your email address and reminders in <a href="${APP_URL}/dashboard/settings#notifications">notification settings</a>.` }),
+    text: `${orgName} — daily supply check\n\n${lines.join("\n")}\n\nReview supplies: ${APP_URL}/dashboard/restock\nNotification settings: ${APP_URL}/dashboard/settings#notifications`,
+  };
+}
+
+export function buildTestNotificationEmail() {
+  return { subject: "Restok: your notification email is working", html: renderEmailLayout({ title: "You're all set", intro: "Supply reminders will arrive at this address. Your sign-in and account emails stay unchanged.", cta: { label: "Open Restok", href: `${APP_URL}/dashboard` }, tone: "success" }), text: `Your Restok notification email is working. Supply reminders will arrive here. Your sign-in and account emails stay unchanged.\n${APP_URL}/dashboard` };
+}

@@ -1,107 +1,58 @@
-import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { resolveNotificationEmail, sendEmail } from "@/lib/email";
-import { buildStockAlertEmail } from "@/lib/emailTemplates";
+import { buildStockDigestEmail } from "@/lib/emailTemplates";
+import { daysRemaining, needsReorder } from "@/lib/inventory";
 
-export async function GET() {
-  const now = new Date();
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return Response.json({ error: "Reminder job is not configured." }, { status: 503 });
+  const supplied = Buffer.from(req.headers.get("authorization") || "");
+  const expected = Buffer.from(`Bearer ${secret}`);
+  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
   let emailsSent = 0;
-
-  const usersSnap = await adminDb.collection("users").get();
-
-  for (const userDoc of usersSnap.docs) {
+  let failed = 0;
+  const users = await adminDb.collection("users").get();
+  for (const userDoc of users.docs) {
     const user = userDoc.data();
-
-    if (!user?.email || !user?.orgId) continue;
-    if (user.emailNotifications === false || user.lowStockAlerts === false) {
-      continue;
-    }
-
-    const orgRef = adminDb.collection("organizations").doc(user.orgId);
-    const orgSnap = await orgRef.get();
-    const org = orgSnap.data();
-
-    if (org?.active === false) continue;
-
-    const itemsSnap = await orgRef.collection("items").get();
-    const vendorsSnap = await orgRef.collection("vendors").get();
-    const locationsSnap = await orgRef.collection("locations").get();
-    const vendors = new Map(vendorsSnap.docs.map((doc) => [doc.id, doc.data()]));
-    const locations = new Map(
-      locationsSnap.docs.map((doc) => [doc.id, doc.data()])
-    );
-
-    for (const itemDoc of itemsSnap.docs) {
-      try {
-        const item = itemDoc.data();
-        if (!item?.createdAt || !item?.daysLast) continue;
-
-        const created = item.createdAt.toDate();
-        const diffDays = Math.floor(
-          (now.getTime() - created.getTime()) / 86400000
-        );
-
-        const daysLeft = item.daysLast - diffDays;
-
-        // Only alert if <= 3 days remaining
-        if (daysLeft > 3) continue;
-
-        // OPTIONAL duplicate prevention (commented intentionally)
-        // const lastAlert = item.lastAlertSentAt?.toDate?.();
-        // if (lastAlert) {
-        //   const hoursSince =
-        //     (now.getTime() - lastAlert.getTime()) / 3600000;
-        //   if (hoursSince < 24) continue;
-        // }
-
-        const vendor =
-          item.vendorId && typeof item.vendorId === "string"
-            ? vendors.get(item.vendorId)
-            : null;
-        const location =
-          item.locationId && typeof item.locationId === "string"
-            ? locations.get(item.locationId)
-            : null;
-        const message = buildStockAlertEmail({
-          itemName: item.name,
-          daysLeft,
-          orgName: org?.name || null,
-          vendorName:
-            vendor && typeof vendor.name === "string" ? vendor.name : null,
-          locationName:
-            location && typeof location.name === "string" ? location.name : null,
+    if (!user.orgId || user.disabled || user.accountStatus === "deactivated" || user.emailNotifications === false || user.lowStockAlerts === false) continue;
+    const to = resolveNotificationEmail(user);
+    if (!to) continue;
+    // Persist exact content so concurrent runs and retries share a provider idempotency key.
+    const deliveryId = createHash("sha256").update(`${userDoc.id}:${user.orgId}:${day}`).digest("hex");
+    const deliveryRef = adminDb.collection("notificationDeliveries").doc(deliveryId);
+    try {
+      const orgRef = adminDb.collection("organizations").doc(user.orgId);
+      const org = (await orgRef.get()).data();
+      if (!org || org.active === false) continue;
+      let delivery = (await deliveryRef.get()).data();
+      if (delivery?.sentAt) continue;
+      if (!delivery) {
+        const [items, vendors, locations] = await Promise.all([orgRef.collection("items").get(), orgRef.collection("vendors").get(), orgRef.collection("locations").get()]);
+        const vendorNames = new Map(vendors.docs.map(d => [d.id, d.data().name]));
+        const locationNames = new Map(locations.docs.map(d => [d.id, d.data().name]));
+        const due = items.docs.map(d => d.data()).filter(item => needsReorder(item, now)).map(item => ({ name: String(item.name || "Supply"), daysLeft: daysRemaining(item, now)!, vendor: String(vendorNames.get(item.vendorId) || "No vendor"), location: String(locationNames.get(item.locationId) || "No location") })).sort((a, b) => a.daysLeft - b.daysLeft);
+        if (!due.length) continue;
+        const payload = { to, ...buildStockDigestEmail(String(org.name || "Your workspace"), due), createdAt: Timestamp.now() };
+        await adminDb.runTransaction(async tx => {
+          if (!(await tx.get(deliveryRef)).exists) tx.create(deliveryRef, payload);
         });
-
-        const to = resolveNotificationEmail(user);
-
-        if (!to) {
-          console.warn("Skipping user with no notification email", userDoc.id);
-          continue;
-        }
-
-        await sendEmail({
-          from: "Restok <alerts@getrestok.com>",
-          to,
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-        });
-
-        await itemDoc.ref.update({
-          lastAlertSentAt: Timestamp.now(),
-        });
-
-        emailsSent++;
-      } catch (err) {
-        console.error("Failed on item", itemDoc.id, err);
+        delivery = (await deliveryRef.get()).data()!;
       }
+      if (delivery.sentAt) continue;
+      await sendEmail({ from: "Restok <alerts@getrestok.com>", to: delivery.to, subject: delivery.subject, html: delivery.html, text: delivery.text, idempotencyKey: `digest-${deliveryId}` });
+      await deliveryRef.update({ sentAt: Timestamp.now() });
+      emailsSent++;
+    } catch (error) {
+      failed++;
+      console.error("Digest failed", userDoc.id, error);
     }
   }
-
-  return NextResponse.json({
-    success: true,
-    emailsSent,
-    ranAt: now.toISOString(),
-  });
+  return Response.json({ success: failed === 0, emailsSent, failed, ranAt: new Date(now).toISOString() }, { status: failed ? 500 : 200 });
 }

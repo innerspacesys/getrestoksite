@@ -15,13 +15,16 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import ItemActions from "@/components/ItemActions";
+import { daysRemaining, reminderWindow, stockLabel, type StockItem } from "@/lib/inventory";
+import { useInventoryClock } from "@/lib/useInventoryClock";
 import { PLANS } from "@/lib/plans";
 
 type TimestampLike = {
   toDate: () => Date;
 };
 
-type ItemDoc = {
+type ItemDoc = StockItem & {
   id: string;
   name: string;
   vendorId?: string | null;
@@ -46,6 +49,7 @@ type LocationDoc = {
 type ItemFormState = {
   name: string;
   daysLast: string;
+  reminderDays: string;
   vendorId: string;
   locationId: string;
   description: string;
@@ -57,6 +61,7 @@ type Unsubscribe = (() => void) | undefined;
 const EMPTY_FORM: ItemFormState = {
   name: "",
   daysLast: "",
+  reminderDays: "3",
   vendorId: "",
   locationId: "",
   description: "",
@@ -65,6 +70,7 @@ const EMPTY_FORM: ItemFormState = {
 
 export default function ItemsPage() {
   const router = useRouter();
+  const now = useInventoryClock();
 
   const [user, setUser] = useState<User | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -84,6 +90,8 @@ export default function ItemsPage() {
   const [deleteItem, setDeleteItem] = useState<ItemDoc | null>(null);
   const [newVendorName, setNewVendorName] = useState("");
   const [vendorSaving, setVendorSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [savingItem, setSavingItem] = useState(false);
 
   const [planLoaded, setPlanLoaded] = useState(false);
   const [itemsLoaded, setItemsLoaded] = useState(false);
@@ -177,30 +185,12 @@ export default function ItemsPage() {
   }, [router]);
 
   function getStatus(item: ItemDoc) {
-    if (!item.createdAt?.toDate) return null;
-
-    const created = item.createdAt.toDate();
-    const diffDays = Math.floor((Date.now() - created.getTime()) / 86400000);
-    const daysLeft = item.daysLast - diffDays;
-
-    if (daysLeft <= 0) {
-      return { label: "Due Today", color: "bg-red-500", daysLeft: 0 };
-    }
-
-    if (daysLeft <= 3) {
-      return { label: "Running Low", color: "bg-amber-500", daysLeft };
-    }
-
-    return { label: "OK", color: "bg-green-500", daysLeft };
+    const left = daysRemaining(item, now);
+    return { label: item.orderStatus === "ordered" ? "Awaiting delivery" : stockLabel(item, now), color: item.orderStatus === "ordered" ? "bg-sky-600" : left !== null && left <= 0 ? "bg-red-500" : left !== null && left <= reminderWindow(item) ? "bg-amber-500" : "bg-green-600" };
   }
 
   function getProgress(item: ItemDoc) {
-    if (!item.createdAt?.toDate) return 0;
-
-    const created = item.createdAt.toDate();
-    const diffDays = Math.floor((Date.now() - created.getTime()) / 86400000);
-    const left = Math.max(item.daysLast - diffDays, 0);
-    return Math.min(100, Math.max(0, (left / item.daysLast) * 100));
+    return Math.min(100, Math.max(0, ((daysRemaining(item, now) ?? 0) / item.daysLast) * 100));
   }
 
   function getVendorName(item: ItemDoc) {
@@ -222,6 +212,7 @@ export default function ItemsPage() {
     setForm({
       name: item.name,
       daysLast: String(item.daysLast),
+      reminderDays: String(reminderWindow(item)),
       vendorId: item.vendorId || "",
       locationId: item.locationId || "",
       description: item.description || "",
@@ -234,11 +225,16 @@ export default function ItemsPage() {
     e.preventDefault();
     if (!user || !orgId) return;
 
+    if (savingItem) return;
+    if (!Number.isInteger(Number(form.daysLast)) || Number(form.daysLast) < 1 || !Number.isInteger(Number(form.reminderDays)) || Number(form.reminderDays) < 0 || Number(form.reminderDays) > 365) { setSaveError("Enter a whole number of days and a reminder window from 0 to 365."); return; }
+    setSavingItem(true); setSaveError("");
+    try {
     await addDoc(collection(db, "organizations", orgId, "items"), {
       name: form.name.trim(),
       vendorId: form.vendorId || null,
       locationId: form.locationId || null,
       daysLast: Number(form.daysLast),
+      reminderDays: Number(form.reminderDays),
       description: form.description.trim() || "",
       sku: form.sku.trim() || "",
       createdAt: serverTimestamp(),
@@ -247,17 +243,24 @@ export default function ItemsPage() {
 
     setShowAdd(false);
     resetForm();
+    } catch { setSaveError("Unable to save the item. Please try again."); }
+    finally { setSavingItem(false); }
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!orgId || !editItem) return;
 
+    if (savingItem) return;
+    if (!Number.isInteger(Number(form.daysLast)) || Number(form.daysLast) < 1 || !Number.isInteger(Number(form.reminderDays)) || Number(form.reminderDays) < 0 || Number(form.reminderDays) > 365) { setSaveError("Enter a whole number of days and a reminder window from 0 to 365."); return; }
+    setSavingItem(true); setSaveError("");
+    try {
     await updateDoc(doc(db, "organizations", orgId, "items", editItem.id), {
       name: form.name.trim(),
       vendorId: form.vendorId || null,
       locationId: form.locationId || null,
       daysLast: Number(form.daysLast),
+      reminderDays: Number(form.reminderDays),
       description: form.description.trim() || "",
       sku: form.sku.trim() || "",
     });
@@ -265,6 +268,8 @@ export default function ItemsPage() {
     setShowEdit(false);
     setEditItem(null);
     resetForm();
+    } catch { setSaveError("Unable to save the item. Please try again."); }
+    finally { setSavingItem(false); }
   }
 
   async function handleDeleteConfirmed() {
@@ -273,14 +278,6 @@ export default function ItemsPage() {
     await deleteDoc(doc(db, "organizations", orgId, "items", deleteItem.id));
     setShowDelete(false);
     setDeleteItem(null);
-  }
-
-  async function handleRefill(id: string) {
-    if (!orgId) return;
-
-    await updateDoc(doc(db, "organizations", orgId, "items", id), {
-      createdAt: new Date(),
-    });
   }
 
   async function handleCreateVendor(e: React.FormEvent<HTMLFormElement>) {
@@ -405,7 +402,7 @@ export default function ItemsPage() {
                   <span
                     className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold text-white ${status.color}`}
                   >
-                    {status.label} • {status.daysLeft} days left
+                    {status.label}
                   </span>
                 )}
 
@@ -439,12 +436,7 @@ export default function ItemsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 md:max-w-[220px] md:flex-col">
-                <button
-                  onClick={() => handleRefill(item.id)}
-                  className="rounded-2xl bg-green-500 px-4 py-2 text-white"
-                >
-                  Refill
-                </button>
+                <ItemActions item={item} />
                 <button
                   onClick={() => openEditModal(item)}
                   className="rounded-2xl bg-blue-500 px-4 py-2 text-white"
@@ -470,7 +462,9 @@ export default function ItemsPage() {
         {showAdd && (
           <ItemModal
             title="Add Item"
-            submitLabel="Save"
+            submitLabel={savingItem ? "Saving…" : "Save"}
+            error={saveError}
+            saving={savingItem}
             form={form}
             setForm={setForm}
             vendors={vendors}
@@ -486,7 +480,9 @@ export default function ItemsPage() {
         {showEdit && editItem && (
           <ItemModal
             title="Edit Item"
-            submitLabel="Save Changes"
+            submitLabel={savingItem ? "Saving…" : "Save Changes"}
+            error={saveError}
+            saving={savingItem}
             form={form}
             setForm={setForm}
             vendors={vendors}
@@ -559,7 +555,7 @@ export default function ItemsPage() {
               transition={{ duration: 0.2 }}
               onSubmit={handleCreateVendor}
               onClick={(e) => e.stopPropagation()}
-              className="mx-4 w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
+              className="mx-4 max-h-[90vh] overflow-y-auto w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
             >
               <h2 className="text-xl font-semibold">Add Supplier</h2>
               <div>
@@ -599,6 +595,8 @@ export default function ItemsPage() {
 function ItemModal({
   title,
   submitLabel,
+  error,
+  saving,
   form,
   setForm,
   vendors,
@@ -609,6 +607,8 @@ function ItemModal({
 }: {
   title: string;
   submitLabel: string;
+  error: string;
+  saving: boolean;
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   vendors: VendorDoc[];
@@ -632,9 +632,10 @@ function ItemModal({
         transition={{ duration: 0.2 }}
         onSubmit={onSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="mx-4 w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
+        className="mx-4 max-h-[90vh] overflow-y-auto w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
       >
         <h2 className="text-xl font-semibold">{title}</h2>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
         <div>
           <label className="mb-1 block text-sm font-medium">Item Name</label>
@@ -651,7 +652,7 @@ function ItemModal({
 
         <div>
           <label className="mb-1 block text-sm font-medium">
-            Reorder Reminder (days)
+            How many days does this supply last?
           </label>
           <input
             className="input"
@@ -664,6 +665,12 @@ function ItemModal({
             }
             required
           />
+        </div>
+
+        <div>
+          <label htmlFor="reminder-days" className="mb-1 block text-sm font-medium">Remind me this many days before it runs out</label>
+          <input id="reminder-days" className="input" type="number" min="0" max="365" step="1" required value={form.reminderDays} onChange={e => setForm(current => ({ ...current, reminderDays: e.target.value }))} />
+          <p className="mt-1 text-xs text-slate-500">Allow time for delivery. Use 0 for a reminder on the due day.</p>
         </div>
 
         <div>
@@ -756,6 +763,7 @@ function ItemModal({
           </button>
           <button
             type="submit"
+            disabled={saving}
             className="w-1/2 rounded-2xl bg-sky-600 p-3 text-white"
           >
             {submitLabel}

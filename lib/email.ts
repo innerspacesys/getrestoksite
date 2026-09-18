@@ -1,7 +1,9 @@
 import { Resend } from "resend";
+import { notificationRecipient } from "./notificationPreferences";
 
 type SendEmailOptions = {
   to: string | string[];
+  idempotencyKey?: string;
   subject: string;
   html: string;
   text?: string;
@@ -18,7 +20,7 @@ export function resolveNotificationEmail(user: {
   email?: string;
   notificationEmail?: string;
 }): string | null {
-  return user.notificationEmail || user.email || null;
+  return notificationRecipient(user);
 }
 
 function getResend() {
@@ -38,6 +40,7 @@ export async function sendEmail({
   bcc,
   replyTo,
   attachments,
+  idempotencyKey,
 }: SendEmailOptions) {
   try {
     const resend = getResend();
@@ -50,7 +53,7 @@ export async function sendEmail({
       html,
       text,
       attachments,
-    });
+    }, idempotencyKey ? { idempotencyKey } : undefined);
 
     if (error) {
       console.error("❌ Resend error:", error);

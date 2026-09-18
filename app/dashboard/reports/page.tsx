@@ -1,5 +1,7 @@
 "use client";
 
+import { daysRemaining, reminderWindow, type StockItem } from "@/lib/inventory";
+import { useInventoryClock } from "@/lib/useInventoryClock";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -9,7 +11,7 @@ type TimestampLike = {
   toDate: () => Date;
 };
 
-type Item = {
+type Item = StockItem & {
   id: string;
   name: string;
   daysLast: number;
@@ -32,10 +34,7 @@ type Location = {
 type VendorGroups = Record<string, Item[]>;
 
 function getDaysLeft(item: Item, renderedAt: number) {
-  if (!item.createdAt?.toDate) return 999;
-  const created = item.createdAt.toDate();
-  const diff = Math.floor((renderedAt - created.getTime()) / 86400000);
-  return item.daysLast - diff;
+  return daysRemaining(item, renderedAt) ?? 999;
 }
 
 function LockedBlur({
@@ -79,7 +78,7 @@ export default function ReportsPage() {
   const [filter, setFilter] = useState<"low" | "due" | "all">("low");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showUpsell, setShowUpsell] = useState(false);
-  const [renderedAt] = useState(() => Date.now());
+  const renderedAt = useInventoryClock();
 
   const vendors = useMemo(() => {
     const next: Record<string, Vendor> = {};
@@ -103,12 +102,12 @@ export default function ReportsPage() {
     if (filter === "low") {
       return typedItems.filter((item) => {
         const remaining = getDaysLeft(item, renderedAt);
-        return remaining <= 3 && remaining > 0;
+        return item.orderStatus !== "ordered" && remaining <= reminderWindow(item) && remaining > 0;
       });
     }
 
     if (filter === "due") {
-      return typedItems.filter((item) => getDaysLeft(item, renderedAt) <= 0);
+      return typedItems.filter((item) => item.orderStatus !== "ordered" && getDaysLeft(item, renderedAt) <= 0);
     }
 
     return typedItems;
@@ -153,11 +152,11 @@ export default function ReportsPage() {
   const analytics = useMemo(() => {
     const totalTracked = typedItems.length;
     const dueNow = typedItems.filter(
-      (item) => getDaysLeft(item, renderedAt) <= 0
+      (item) => item.orderStatus !== "ordered" && getDaysLeft(item, renderedAt) <= 0
     ).length;
     const runningLow = typedItems.filter((item) => {
       const remaining = getDaysLeft(item, renderedAt);
-      return remaining > 0 && remaining <= 3;
+      return item.orderStatus !== "ordered" && remaining > 0 && remaining <= reminderWindow(item);
     }).length;
 
     const averageCadence = totalTracked
@@ -291,7 +290,7 @@ export default function ReportsPage() {
               activeClassName="bg-amber-500 text-white"
               onClick={() => setFilter("low")}
             >
-              Running Low (≤3 days)
+              Within reminder window
             </FilterButton>
             <FilterButton
               active={filter === "due"}
@@ -464,7 +463,7 @@ export default function ReportsPage() {
                 <MiniMetric
                   label="Running low"
                   value={analytics.runningLow}
-                  helper="Items with 3 days or less remaining"
+                  helper="Items within their reminder window"
                 />
                 <MiniMetric
                   label="Average days left"
