@@ -307,11 +307,13 @@ export default function OnboardingWalkthrough() {
 
           return { top, left };
         })()
-      : undefined;
+      : typeof window !== "undefined" && window.innerWidth >= 1024
+        ? { top: Math.max(24, (window.innerHeight - 400) / 2), left: Math.max(24, (window.innerWidth - 360) / 2) }
+        : undefined;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[70]">
-      <div className="absolute inset-0 hidden bg-slate-950/58 backdrop-blur-[2px] md:block" />
+      <div className="absolute inset-0 hidden bg-slate-950/58 backdrop-blur-[2px] lg:block" />
 
       {targetRect && (
         <div
@@ -321,7 +323,7 @@ export default function OnboardingWalkthrough() {
       )}
 
       <div
-        className="absolute inset-x-4 bottom-4 top-auto md:inset-auto md:w-[360px]"
+        className="absolute inset-x-4 bottom-24 top-auto lg:inset-auto lg:w-[360px]"
         style={cardStyle}
       >
         <div className="pointer-events-auto surface-panel rounded-[30px] p-6 shadow-2xl">
@@ -357,13 +359,6 @@ export default function OnboardingWalkthrough() {
               {MODERN_MOBILE_MENU_TARGETS.has(currentStep.target)
                 ? "On mobile, open your account menu at the top right to reach this section."
                 : "On mobile, use the bottom navigation to move through the main sections."}
-            </div>
-          )}
-
-          {stepIndex === 0 && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-              You can skip this and it will not show again, but new users usually
-              get more value faster if they go through it once.
             </div>
           )}
 
