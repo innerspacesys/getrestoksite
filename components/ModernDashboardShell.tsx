@@ -43,12 +43,12 @@ type OnboardingNavRequest = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", emoji: "📊", primary: true, desktop: true, mobile: true },
   { href: "/dashboard/items", label: "Items", emoji: "📦", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/vendors", label: "Vendors", emoji: "🏪" },
+  { href: "/dashboard/vendors", label: "Vendors", emoji: "🏪", primary: true, desktop: true, mobile: true },
   { href: "/dashboard/locations", label: "Locations", emoji: "📍" },
   { href: "/dashboard/restock", label: "Restock", emoji: "🧾", primary: true, desktop: true, mobile: true },
   { href: "/dashboard/reports", label: "Reports", emoji: "📝", primary: true, desktop: true, mobile: true },
   { href: "/dashboard/users", label: "Users", emoji: "👥" },
-  { href: "/dashboard/settings", label: "Settings", emoji: "⚙️", primary: true, desktop: true, mobile: false },
+  { href: "/dashboard/settings", label: "Settings", emoji: "⚙️" },
   { href: "/dashboard/help", label: "Help", emoji: "❓" },
 ];
 
@@ -79,9 +79,9 @@ export default function ModernDashboardShell({
     []
   );
 
-  const menuTargets = useMemo(() => new Set(["vendors", "locations", "users", "help"]), []);
+  const menuTargets = useMemo(() => new Set(["locations", "users", "settings", "help"]), []);
   const mobileMenuTargets = useMemo(
-    () => new Set(["vendors", "locations", "users", "settings", "help"]),
+    () => new Set(["locations", "users", "settings", "help"]),
     []
   );
 
@@ -151,6 +151,13 @@ export default function ModernDashboardShell({
       );
     };
   }, [menuTargets, mobileMenuTargets]);
+
+  useEffect(() => {
+    if (!showMore) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setShowMore(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showMore]);
 
   async function handleLogout() {
     try {
@@ -236,19 +243,14 @@ export default function ModernDashboardShell({
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setShowSupport(true)}
-              className="hidden rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900 lg:inline-flex"
-            >
-              Support
-            </button>
-
-            <button
-              type="button"
               onClick={() => setShowMore((current) => !current)}
               data-onboarding-target="menu"
+              aria-label="Open account menu"
+              aria-expanded={showMore}
               className="inline-flex items-center rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900"
             >
-              Menu
+              <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-xs text-sky-800 dark:bg-sky-900 dark:text-sky-100" aria-hidden="true">{(userInfo?.name || "Account").slice(0, 1).toUpperCase()}</span>
+              <span className="max-w-28 truncate">{userInfo?.name?.split(" ")[0] || "Account"}</span><span className="ml-2" aria-hidden="true">⌄</span>
             </button>
           </div>
         </div>
@@ -263,6 +265,7 @@ export default function ModernDashboardShell({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowMore(false)}
+              aria-label="Close account menu"
               className="fixed inset-0 z-40 bg-slate-950/28 backdrop-blur-[1px]"
             />
             <motion.aside
@@ -277,7 +280,7 @@ export default function ModernDashboardShell({
               <div className="flex items-center justify-between pb-3">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    Workspace menu
+                    Account & workspace
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     {plan ? `${String(plan).toUpperCase()} plan` : APP_DISPLAY_VERSION}
@@ -313,7 +316,7 @@ export default function ModernDashboardShell({
                     }`}
                   >
                     <span className="text-base">{item.emoji}</span>
-                    <span>{item.label}</span>
+                    <span>{item.label === "Users" ? "Team" : item.label}</span>
                   </button>
                 ))}
               </div>
@@ -384,44 +387,26 @@ export default function ModernDashboardShell({
             data-onboarding-target="menu"
             className="rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200"
           >
-            More
+            Account
           </button>
         </div>
         {children}
       </main>
 
       <nav
+        aria-label="Main navigation"
         data-onboarding-scope="navigation"
         data-onboarding-container="true"
         data-onboarding-layer="true"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/88 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88 lg:hidden"
       >
-        <div className="mx-auto grid max-w-xl grid-cols-5 gap-2">
+        <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
           {mobileItems.map((item) => (
-            <button
-              key={item.href}
-              type="button"
-              onClick={() => router.push(item.href)}
-              data-onboarding-target={item.label.toLowerCase()}
-              className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium transition ${
-                pathname === item.href
-                  ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-            >
-              <span className="text-base">{item.emoji}</span>
-              <span>{item.label}</span>
-            </button>
+            <Link key={item.href} href={item.href} data-onboarding-target={item.label.toLowerCase()} aria-current={pathname === item.href ? "page" : undefined}
+              className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-medium transition ${pathname === item.href ? "bg-sky-600 text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}>
+              <span className="text-base" aria-hidden="true">{item.emoji}</span><span>{item.label}</span>
+            </Link>
           ))}
-          <button
-            type="button"
-            onClick={() => setShowMore(true)}
-            data-onboarding-target="menu"
-            className="flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            <span className="text-base">⋯</span>
-            <span>More</span>
-          </button>
         </div>
       </nav>
 
@@ -517,6 +502,7 @@ function NavPill({
   return (
     <Link
       href={item.href}
+      aria-current={active ? "page" : undefined}
       data-onboarding-target={item.label.toLowerCase()}
       className={`rounded-full px-4 py-2 text-sm font-medium transition ${
         active

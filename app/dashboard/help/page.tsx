@@ -104,7 +104,7 @@ export default function HelpPage() {
             <div className="mt-5 space-y-3 text-sm">
               {[
                 ["Items", "Track what you buy, how long it lasts, and where it belongs."],
-                ["Vendors", "Store supplier info for email, websites, and pickup planning."],
+                ["Vendors", "Find Vendors beside Items in the main navigation. Search suppliers, see linked supply counts, and open View supplies for reorder priorities."],
                 ["Locations", "Organize inventory by room, department, or storage area."],
                 ["Restock", "Review what needs action and reorder it."],
                 ["Reports", "Print shopping lists and review analytics on supported plans."],

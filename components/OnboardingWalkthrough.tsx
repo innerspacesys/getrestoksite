@@ -14,9 +14,8 @@ type TourStep = {
 
 type Rect = { top: number; left: number; width: number; height: number } | null;
 
-const MODERN_MENU_TARGETS = new Set(["vendors", "locations", "users", "help"]);
+const MODERN_MENU_TARGETS = new Set(["locations", "users", "settings", "help"]);
 const MODERN_MOBILE_MENU_TARGETS = new Set([
-  "vendors",
   "locations",
   "users",
   "settings",
@@ -29,14 +28,14 @@ function getTourSteps(plan: string | null): TourStep[] {
       id: "welcome",
       title: "Welcome to Restok",
       body:
-        "This walkthrough shows the fastest way to get value from the app. You can skip it, but that is not recommended for a first pass.",
+        "Meet your workspace: organize suppliers, track supplies, and know what to reorder. You can replay this tour from Help at any time.",
     },
     {
       id: "vendors",
       target: "vendors",
-      title: "Start with Vendors if you want a cleaner setup",
+      title: "Your suppliers, one tap away",
       body:
-        "Add your suppliers here first if you want their email, website, and pickup info ready before you begin tracking items.",
+        "Vendors now lives beside Items in the main navigation. Add a supplier, save its contact details, and choose View supplies to see linked items with anything needing a reorder first.",
     },
     {
       id: "items",
@@ -88,7 +87,7 @@ function getTourSteps(plan: string | null): TourStep[] {
       target: "settings",
       title: "Settings handles account, billing, and preferences",
       body:
-        "Use Settings for your profile, notifications, billing access, and general account management once your workspace is up and running.",
+        "Open your account menu at the top right for Settings, Team, Locations, and Support. In Settings, choose where reminder emails go and manage your profile and billing.",
     },
     {
       id: "help",
@@ -114,7 +113,7 @@ export default function OnboardingWalkthrough() {
   const steps = useMemo(() => getTourSteps(plan), [plan]);
   const currentStep = steps[stepIndex];
   const isMobileViewport =
-    typeof window !== "undefined" ? window.innerWidth < 768 : false;
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false;
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
@@ -160,7 +159,7 @@ export default function OnboardingWalkthrough() {
       return () => window.cancelAnimationFrame(frame);
     }
 
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.innerWidth < 1024;
     const targetKey = currentStep.target;
     const shouldOpenMenu = isMobile
       ? MODERN_MOBILE_MENU_TARGETS.has(targetKey)
@@ -356,7 +355,7 @@ export default function OnboardingWalkthrough() {
           {isMobileViewport && currentStep.target && (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
               {MODERN_MOBILE_MENU_TARGETS.has(currentStep.target)
-                ? "On mobile, use the More menu in the bottom navigation to reach this section."
+                ? "On mobile, open your account menu at the top right to reach this section."
                 : "On mobile, use the bottom navigation to move through the main sections."}
             </div>
           )}
