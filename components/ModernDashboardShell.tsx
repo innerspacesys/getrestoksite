@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Settings as SettingsIcon, HelpCircle, ChevronDown } from "lucide-react";
 import { auth } from "@/lib/auth/client";
 import { APP_DISPLAY_VERSION } from "@/lib/appMeta";
 import { useOrgData } from "@/lib/useOrgData";
@@ -21,9 +22,7 @@ type NavItem = {
   href: string;
   label: string;
   emoji: string;
-  primary?: boolean;
-  desktop?: boolean;
-  mobile?: boolean;
+  target: string;
 };
 
 type MeResponse = {
@@ -40,17 +39,23 @@ type OnboardingNavRequest = {
   mobile?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", emoji: "📊", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/items", label: "Items", emoji: "📦", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/vendors", label: "Vendors", emoji: "🏪", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/locations", label: "Locations", emoji: "📍" },
-  { href: "/dashboard/restock", label: "Restock", emoji: "🧾", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/reports", label: "Reports", emoji: "📝", primary: true, desktop: true, mobile: true },
-  { href: "/dashboard/users", label: "Users", emoji: "👥" },
-  { href: "/dashboard/settings", label: "Settings", emoji: "⚙️" },
-  { href: "/dashboard/help", label: "Help", emoji: "❓" },
+// Primary tabs live on the top bar (and the mobile bottom nav).
+const PRIMARY_TABS: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", emoji: "📊", target: "dashboard" },
+  { href: "/dashboard/items", label: "Items", emoji: "📦", target: "items" },
+  { href: "/dashboard/vendors", label: "Vendors", emoji: "🏪", target: "vendors" },
+  { href: "/dashboard/restock", label: "Restock", emoji: "🧾", target: "restock" },
+  { href: "/dashboard/reports", label: "Reports", emoji: "📝", target: "reports" },
 ];
+
+// Secondary destinations live under the "More" dropdown (and mobile account panel).
+const MORE_TABS: NavItem[] = [
+  { href: "/dashboard/locations", label: "Locations", emoji: "📍", target: "locations" },
+  { href: "/dashboard/users", label: "Team", emoji: "👥", target: "users" },
+];
+
+const SETTINGS_ITEM: NavItem = { href: "/dashboard/settings", label: "Settings", emoji: "⚙️", target: "settings" };
+const HELP_ITEM: NavItem = { href: "/dashboard/help", label: "Help", emoji: "❓", target: "help" };
 
 export default function ModernDashboardShell({
   children,
@@ -60,30 +65,15 @@ export default function ModernDashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const { plan } = useOrgData();
-  const [showMore, setShowMore] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showMoreNav, setShowMoreNav] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const [userInfo, setUserInfo] = useState<MeResponse | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [messageState, setMessageState] = useState<"idle" | "sending">("idle");
 
-  const desktopItems = useMemo(
-    () => NAV_ITEMS.filter((item) => item.desktop),
-    []
-  );
-  const mobileItems = useMemo(
-    () => NAV_ITEMS.filter((item) => item.mobile),
-    []
-  );
-  const moreItems = useMemo(
-    () => NAV_ITEMS.filter((item) => !item.primary),
-    []
-  );
-
-  const menuTargets = useMemo(() => new Set(["locations", "users", "settings", "help"]), []);
-  const mobileMenuTargets = useMemo(
-    () => new Set(["locations", "users", "settings", "help"]),
-    []
-  );
+  const moreActive = MORE_TABS.some((item) => item.href === pathname);
+  const initial = (userInfo?.name || "Account").slice(0, 1).toUpperCase();
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +109,12 @@ export default function ModernDashboardShell({
     };
   }, []);
 
+  // Close menus on route change so a nav click never leaves one hanging open.
+  useEffect(() => {
+    setShowAccount(false);
+    setShowMoreNav(false);
+  }, [pathname]);
+
   useEffect(() => {
     function handleOnboardingNavigation(event: Event) {
       const detail = (event as CustomEvent<OnboardingNavRequest>).detail;
@@ -127,16 +123,22 @@ export default function ModernDashboardShell({
       const isMobile = Boolean(detail?.mobile);
 
       if (!shouldOpen || !target) {
-        setShowMore(false);
+        setShowAccount(false);
+        setShowMoreNav(false);
         return;
       }
 
+      // On mobile every secondary destination lives in the account panel.
       if (isMobile) {
-        setShowMore(mobileMenuTargets.has(target));
+        setShowMoreNav(false);
+        setShowAccount(["locations", "users", "settings", "help"].includes(target));
         return;
       }
 
-      setShowMore(menuTargets.has(target));
+      // On desktop Locations/Team live in the More dropdown; Settings/Help are
+      // always-visible icons that need no menu opened to be highlighted.
+      setShowAccount(false);
+      setShowMoreNav(target === "locations" || target === "users");
     }
 
     window.addEventListener(
@@ -150,23 +152,28 @@ export default function ModernDashboardShell({
         handleOnboardingNavigation as EventListener
       );
     };
-  }, [menuTargets, mobileMenuTargets]);
+  }, []);
 
   useEffect(() => {
-    if (!showMore) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setShowMore(false); };
+    if (!showAccount && !showMoreNav) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowAccount(false);
+        setShowMoreNav(false);
+      }
+    };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [showMore]);
+  }, [showAccount, showMoreNav]);
 
-  async function handleLogout() {
+  async function endSession() {
     try {
       await auth.signOut();
       await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/login";
     } catch (err) {
-      console.error("Logout failed", err);
-      alert("Failed to log out");
+      console.error("Sign out failed", err);
+    } finally {
+      window.location.href = "/login";
     }
   }
 
@@ -194,6 +201,13 @@ export default function ModernDashboardShell({
     setShowSupport(false);
   }
 
+  const iconButtonClass = (active: boolean) =>
+    `inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${
+      active
+        ? "border-transparent bg-slate-950 text-white dark:bg-slate-50 dark:text-slate-950"
+        : "border-white/50 bg-white/70 text-slate-600 hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-900"
+    }`;
+
   return (
     <div className="min-h-screen">
       <header
@@ -204,18 +218,9 @@ export default function ModernDashboardShell({
           data-onboarding-container="true"
           className="surface-panel mx-auto flex max-w-7xl items-center gap-3 rounded-[30px] px-4 py-3 shadow-sm md:px-5"
         >
-          <Link
-            href="/dashboard"
-            className="flex min-w-0 items-center gap-3"
-          >
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
             <div className="rounded-2xl bg-sky-50 p-2.5 dark:bg-sky-950/50">
-              <Image
-                src="/logo.svg"
-                alt="Restok Logo"
-                width={34}
-                height={34}
-                className="h-8 w-8"
-              />
+              <Image src="/logo.svg" alt="Restok Logo" width={34} height={34} className="h-8 w-8" />
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100 md:text-base">
@@ -231,40 +236,114 @@ export default function ModernDashboardShell({
             data-onboarding-scope="navigation"
             className="mx-auto hidden min-w-0 items-center gap-1 rounded-full border border-white/50 bg-white/55 p-1 dark:border-white/10 dark:bg-slate-900/50 lg:flex"
           >
-            {desktopItems.map((item) => (
-              <NavPill
-                key={item.href}
-                item={item}
-                active={pathname === item.href}
-              />
+            {PRIMARY_TABS.map((item) => (
+              <NavPill key={item.href} item={item} active={pathname === item.href} />
             ))}
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMoreNav((open) => !open)}
+                aria-expanded={showMoreNav}
+                aria-haspopup="menu"
+                className={`flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition ${
+                  moreActive || showMoreNav
+                    ? "bg-slate-950 text-white dark:bg-slate-50 dark:text-slate-950"
+                    : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
+              >
+                More
+                <ChevronDown className={`h-4 w-4 transition ${showMoreNav ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {showMoreNav && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Close menu"
+                      onClick={() => setShowMoreNav(false)}
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+                    <motion.div
+                      data-onboarding-scope="navigation"
+                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      role="menu"
+                      className="absolute left-1/2 z-50 mt-2 w-52 -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95"
+                    >
+                      {MORE_TABS.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          role="menuitem"
+                          data-onboarding-target={item.target}
+                          aria-current={pathname === item.href ? "page" : undefined}
+                          onClick={() => setShowMoreNav(false)}
+                          className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                            pathname === item.href
+                              ? "bg-sky-600 text-white"
+                              : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <span className="text-base" aria-hidden="true">{item.emoji}</span>
+                          <span>{item.label}</span>
+                        </Link>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5">
+            <Link
+              href={SETTINGS_ITEM.href}
+              data-onboarding-target="settings"
+              aria-label="Settings"
+              title="Settings"
+              className={`hidden lg:inline-flex ${iconButtonClass(pathname === SETTINGS_ITEM.href)}`}
+            >
+              <SettingsIcon className="h-5 w-5" />
+            </Link>
+            <Link
+              href={HELP_ITEM.href}
+              data-onboarding-target="help"
+              aria-label="Help"
+              title="Help"
+              className={`hidden lg:inline-flex ${iconButtonClass(pathname === HELP_ITEM.href)}`}
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+
             <button
               type="button"
-              onClick={() => setShowMore((current) => !current)}
+              onClick={() => setShowAccount((current) => !current)}
               data-onboarding-target="menu"
               aria-label="Open account menu"
-              aria-expanded={showMore}
-              className="inline-flex items-center rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900"
+              aria-expanded={showAccount}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 transition hover:bg-white dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-slate-900"
             >
-              <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-xs text-sky-800 dark:bg-sky-900 dark:text-sky-100" aria-hidden="true">{(userInfo?.name || "Account").slice(0, 1).toUpperCase()}</span>
-              <span className="max-w-28 truncate">{userInfo?.name?.split(" ")[0] || "Account"}</span><span className="ml-2" aria-hidden="true">⌄</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800 dark:bg-sky-900 dark:text-sky-100" aria-hidden="true">
+                {initial}
+              </span>
             </button>
           </div>
         </div>
       </header>
 
       <AnimatePresence>
-        {showMore && (
+        {showAccount && (
           <>
             <motion.button
               type="button"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowMore(false)}
+              onClick={() => setShowAccount(false)}
               aria-label="Close account menu"
               className="fixed inset-0 z-40 bg-slate-950/28 backdrop-blur-[1px]"
             />
@@ -277,18 +356,23 @@ export default function ModernDashboardShell({
               transition={{ type: "spring", stiffness: 280, damping: 24 }}
               className="fixed inset-x-4 top-[5.5rem] z-50 mx-auto w-auto max-w-md overflow-hidden rounded-[30px] border border-white/50 bg-white/92 p-4 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92 md:right-6 md:left-auto md:top-[6.3rem] md:w-[360px]"
             >
-              <div className="flex items-center justify-between pb-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    Account & workspace
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {plan ? `${String(plan).toUpperCase()} plan` : APP_DISPLAY_VERSION}
+              <div className="flex items-center justify-between gap-3 pb-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-base font-semibold text-sky-800 dark:bg-sky-900 dark:text-sky-100" aria-hidden="true">
+                    {initial}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {userInfo?.name || "Your account"}
+                    </div>
+                    <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      {userInfo?.email || (plan ? `${String(plan).toUpperCase()} plan` : APP_DISPLAY_VERSION)}
+                    </div>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowMore(false)}
+                  onClick={() => setShowAccount(false)}
                   className="rounded-full px-2 py-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   aria-label="Close menu"
                 >
@@ -296,19 +380,21 @@ export default function ModernDashboardShell({
                 </button>
               </div>
 
+              {/* On mobile the top bar has no More dropdown or icon buttons, so the
+                  secondary destinations live here. Hidden on desktop. */}
               <div
                 data-onboarding-scope="navigation"
-                className="grid gap-2"
+                className="grid gap-2 border-t border-slate-200/70 pt-3 dark:border-slate-800 lg:hidden"
               >
-                {moreItems.map((item) => (
+                {[...MORE_TABS, SETTINGS_ITEM, HELP_ITEM].map((item) => (
                   <button
                     key={item.href}
                     type="button"
                     onClick={() => {
-                      setShowMore(false);
+                      setShowAccount(false);
                       router.push(item.href);
                     }}
-                    data-onboarding-target={item.label.toLowerCase()}
+                    data-onboarding-target={item.target}
                     className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
                       pathname === item.href
                         ? "bg-sky-600 text-white"
@@ -316,7 +402,7 @@ export default function ModernDashboardShell({
                     }`}
                   >
                     <span className="text-base">{item.emoji}</span>
-                    <span>{item.label === "Users" ? "Team" : item.label}</span>
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -329,7 +415,7 @@ export default function ModernDashboardShell({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowMore(false);
+                    setShowAccount(false);
                     setShowSupport(true);
                   }}
                   className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -341,7 +427,7 @@ export default function ModernDashboardShell({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowMore(false);
+                    setShowAccount(false);
                     onRequestClassicMode();
                   }}
                   className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -353,8 +439,20 @@ export default function ModernDashboardShell({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowMore(false);
-                    void handleLogout();
+                    setShowAccount(false);
+                    void endSession();
+                  }}
+                  className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <span>Switch user</span>
+                  <span>🔁</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAccount(false);
+                    void endSession();
                   }}
                   className="flex w-full items-center justify-between rounded-2xl bg-rose-500 px-4 py-3 text-left text-sm font-medium text-white hover:bg-rose-600"
                 >
@@ -383,11 +481,12 @@ export default function ModernDashboardShell({
           </div>
           <button
             type="button"
-            onClick={() => setShowMore(true)}
+            onClick={() => setShowAccount(true)}
             data-onboarding-target="menu"
-            className="rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 text-sm font-semibold text-sky-800 dark:border-white/10 dark:bg-slate-900/60 dark:text-sky-100"
+            aria-label="Open account menu"
           >
-            Account
+            {initial}
           </button>
         </div>
         {children}
@@ -401,8 +500,8 @@ export default function ModernDashboardShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/88 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88 lg:hidden"
       >
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
-          {mobileItems.map((item) => (
-            <Link key={item.href} href={item.href} data-onboarding-target={item.label.toLowerCase()} aria-current={pathname === item.href ? "page" : undefined}
+          {PRIMARY_TABS.map((item) => (
+            <Link key={item.href} href={item.href} data-onboarding-target={item.target} aria-current={pathname === item.href ? "page" : undefined}
               className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-medium transition ${pathname === item.href ? "bg-sky-600 text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}>
               <span className="text-base" aria-hidden="true">{item.emoji}</span><span>{item.label}</span>
             </Link>
@@ -445,12 +544,7 @@ export default function ModernDashboardShell({
                 )}
               </div>
 
-              <input
-                name="subject"
-                placeholder="Subject"
-                required
-                className="input mb-3"
-              />
+              <input name="subject" placeholder="Subject" required className="input mb-3" />
 
               <textarea
                 name="message"
@@ -492,18 +586,12 @@ export default function ModernDashboardShell({
   );
 }
 
-function NavPill({
-  item,
-  active,
-}: {
-  item: NavItem;
-  active: boolean;
-}) {
+function NavPill({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      data-onboarding-target={item.label.toLowerCase()}
+      data-onboarding-target={item.target}
       className={`rounded-full px-4 py-2 text-sm font-medium transition ${
         active
           ? "bg-slate-950 text-white dark:bg-slate-50 dark:text-slate-950"

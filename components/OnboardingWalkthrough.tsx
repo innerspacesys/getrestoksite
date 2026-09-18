@@ -87,7 +87,7 @@ function getTourSteps(plan: string | null): TourStep[] {
       target: "settings",
       title: "Settings handles account, billing, and preferences",
       body:
-        "Open your account menu at the top right for Settings, Team, Locations, and Support. In Settings, choose where reminder emails go and manage your profile and billing.",
+        "The ⚙️ Settings icon (top right) is where you choose your notification email, manage billing, and update your profile. Locations and Team live under the More menu, and your avatar holds sign-out and Switch user.",
     },
     {
       id: "help",
