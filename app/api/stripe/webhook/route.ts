@@ -6,6 +6,12 @@ import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
 import { buildPasswordSetupEmail } from "@/lib/emailTemplates";
 
+// Grace period a canceled workspace is retained before automatic deletion.
+const RETENTION_DAYS = 30;
+function deletionDeadline() {
+  return Timestamp.fromDate(new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000));
+}
+
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error("Stripe not configured");
@@ -221,14 +227,15 @@ export async function POST(req: Request) {
         });
         console.log("✅ Subscription active → plan:", cleanPlan, `(${sub.status})`);
       } else {
-        // Access is paused; no automatic data-deletion policy is scheduled.
+        // Access is paused; schedule the workspace for deletion after the grace
+        // period, preserving an already-running deadline.
         const existing = orgSnap.docs[0].data();
         await orgRef.update({
           plan: cleanPlan,
           active: false,
           stripeSubscriptionId: sub.id,
           canceledAt: existing.canceledAt ?? Timestamp.now(),
-          scheduledDeletionAt: null,
+          scheduledDeletionAt: existing.scheduledDeletionAt ?? deletionDeadline(),
         });
         console.log("⚠️ Subscription inactive → deactivated:", sub.status);
       }
@@ -249,13 +256,14 @@ export async function POST(req: Request) {
       .get();
 
     if (!orgSnap.empty) {
+      const existing = orgSnap.docs[0].data();
       // Ignore cancellation of an older subscription after the org resubscribed.
-      const currentId = orgSnap.docs[0].data().stripeSubscriptionId;
+      const currentId = existing.stripeSubscriptionId;
       if (currentId && currentId !== sub.id) return NextResponse.json({ received: true });
       await orgSnap.docs[0].ref.update({
         active: false,
-        canceledAt: Timestamp.now(),
-        scheduledDeletionAt: null,
+        canceledAt: existing.canceledAt ?? Timestamp.now(),
+        scheduledDeletionAt: existing.scheduledDeletionAt ?? deletionDeadline(),
         stripeSubscriptionId: null,
       });
 

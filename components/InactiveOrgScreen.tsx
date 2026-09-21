@@ -6,13 +6,22 @@ import { auth, signOut } from "@/lib/auth/client";
 type Props = {
   orgId: string | null;
   role: "owner" | "admin" | "member" | null;
+  scheduledDeletionAt: string | null;
 };
 
-export default function InactiveOrgScreen({ orgId, role }: Props) {
+export default function InactiveOrgScreen({ orgId, role, scheduledDeletionAt }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const canManageBilling = role === "owner" || role === "admin";
+
+  const deletionDate = scheduledDeletionAt
+    ? new Date(scheduledDeletionAt).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   async function handleResubscribe() {
     if (!orgId || busy) return;
@@ -56,11 +65,18 @@ export default function InactiveOrgScreen({ orgId, role }: Props) {
         </p>
 
         <div className="mt-6 rounded-2xl bg-slate-100/70 p-4 text-sm dark:bg-slate-800/50">
-          <p>
-            Your workspace is retained while access is paused. Restok does not currently
-            schedule automatic deletion after cancellation. Restore your subscription
-            to access your saved supplies again.
-          </p>
+          {deletionDate ? (
+            <p>
+              Your data is kept until <span className="font-semibold">{deletionDate}</span>.
+              Resubscribe before then to restore everything exactly as you left it — after that,
+              this workspace and its supplies are <span className="font-semibold">permanently deleted</span>.
+            </p>
+          ) : (
+            <p>
+              Your workspace is retained while access is paused. Resubscribe to restore your
+              saved supplies.
+            </p>
+          )}
         </div>
 
         {error && (
