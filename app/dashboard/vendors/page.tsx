@@ -15,7 +15,8 @@ import {
   getDocs,
   serverTimestamp,
 } from "@/lib/data/client";
-import { motion, Variants } from "framer-motion";
+import { softSpring } from "@/lib/motion";
+import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { useOrgData } from "@/lib/useOrgData";
 
 type VendorDoc = {
@@ -30,6 +31,7 @@ export default function VendorsPage() {
   const { orgId, vendors, items, loading } = useOrgData();
 
   const [search, setSearch] = useState("");
+  const reducedMotion = useReducedMotion();
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -196,11 +198,11 @@ export default function VendorsPage() {
       </div>
       <div className="mt-4 space-y-4">
         {!matches.length && <div className="surface-panel rounded-3xl border-dashed p-10 text-center"><h3 className="font-semibold">{vendors.length ? "No matching vendors" : "Start with your go-to supplier"}</h3><p className="mt-2 text-sm text-slate-500">{vendors.length ? "Try another name, email, or website." : "Add a vendor, then link it to supplies from the Items page."}</p>{!vendors.length && <button onClick={() => setShowModal(true)} className="button-primary mt-5">Add your first vendor</button>}</div>}
-        {matches.map(({vendor:v,linked,due}) => {
+        {matches.map(({vendor:v,linked,due}, index) => {
           const expanded = expandedVendor === v.id;
           const url = websiteUrl(v.website);
           const sorted = [...linked].sort((a,b) => Number(needsReorder(b as StockItem))-Number(needsReorder(a as StockItem)) || (daysRemaining(a as StockItem) ?? Infinity)-(daysRemaining(b as StockItem) ?? Infinity));
-          return <section key={v.id} className="surface-panel overflow-hidden rounded-3xl">
+          return <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...softSpring, delay: Math.min(index, 4) * 0.045 }} key={v.id} className="surface-panel overflow-hidden rounded-3xl">
             <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
               <div className="flex min-w-0 items-start gap-4">
                 <div aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-lg font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">{v.name.slice(0,2).toUpperCase()}</div>
@@ -220,11 +222,14 @@ export default function VendorsPage() {
                 <button aria-label={`Delete ${v.name}`} onClick={() => setDeleteVendor(v)} className="rounded-xl px-3 py-2 text-sm text-slate-500 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950">Delete</button>
               </div>
             </div>
-            {expanded && <div id={`vendor-${v.id}`} className="border-t border-slate-200/70 bg-slate-50/60 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/30 md:px-6">
+            <AnimatePresence initial={false}>
+            {expanded && <motion.div key="supplies" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden">
+            <div id={`vendor-${v.id}`} className="border-t border-slate-200/70 bg-slate-50/60 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/30 md:px-6">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-semibold">Supplies from {v.name}</h4><Link className="text-sm text-sky-600 hover:underline dark:text-sky-300" href="/dashboard/restock">Open restock queue →</Link></div>
               {!sorted.length ? <p className="py-3 text-sm text-slate-500">No supplies linked yet. <Link href="/dashboard/items" className="text-sky-600 underline">Choose this vendor when adding or editing an item.</Link></p> : <ul className="divide-y divide-slate-200 dark:divide-slate-800">{sorted.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3"><Link href="/dashboard/items" className="font-medium hover:text-sky-600">{String(item.name || "Untitled supply")}</Link><span className={`text-sm ${needsReorder(item as StockItem) ? "text-amber-700 dark:text-amber-300" : "text-slate-500 dark:text-slate-400"}`}>{item.orderStatus === "ordered" ? "Ordered · awaiting delivery" : stockLabel(item as StockItem)}</span></li>)}</ul>}
-            </div>}
-          </section>;
+            </div></motion.div>}
+            </AnimatePresence>
+          </motion.section>;
         })}
       </div>
 
@@ -291,7 +296,7 @@ export default function VendorsPage() {
               <button
                 type="button"
                 onClick={resetModal}
-                className="w-1/2 border p-3 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                className="button-secondary w-1/2"
               >
                 Cancel
               </button>
@@ -299,7 +304,7 @@ export default function VendorsPage() {
               <button
                 disabled={saving}
                 type="submit"
-                className="w-1/2 bg-sky-600 hover:bg-sky-700 text-white p-3 rounded transition"
+                className="button-primary w-1/2"
               >
                 {saving ? "Saving…" : "Save vendor"}
               </button>
@@ -336,14 +341,14 @@ export default function VendorsPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setDeleteVendor(null)}
-                className="w-1/2 border p-3 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                className="button-secondary w-1/2"
               >
                 Cancel
               </button>
 
               <button
                 onClick={() => handleDeleteVendor(deleteVendor)}
-                className="w-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded transition"
+                className="button-danger w-1/2"
               >
                 Delete
               </button>

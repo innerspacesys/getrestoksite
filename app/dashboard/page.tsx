@@ -1,10 +1,12 @@
 "use client";
 
+import AnimatedNumber from "@/components/AnimatedNumber";
+import { softSpring } from "@/lib/motion";
 import Link from "next/link";
 import { daysRemaining, needsReorder, stockLabel, type StockItem } from "@/lib/inventory";
 import { useInventoryClock } from "@/lib/useInventoryClock";
 import ItemActions from "@/components/ItemActions";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { User } from "@/lib/auth/client";
 import { useOrgStore, type OrgItem } from "@/lib/orgStore";
 import { useEffect, useState } from "react";
@@ -32,6 +34,7 @@ type DashboardItem = OrgItem & StockItem & {
 
 export default function DashboardHome() {
   const now = useInventoryClock();
+  const reducedMotion = useReducedMotion();
 
   // ------------------------------
   // ⭐ Pull everything from global store
@@ -100,7 +103,7 @@ const displayName =
       initial={{ opacity: 0.4 }}
       animate={{ opacity: 1 }}
     >
-      <section className="surface-panel rounded-[32px] px-6 py-7 md:px-8">
+      <section className="restok-hero surface-panel rounded-[32px] px-6 py-7 md:px-8">
         <span className="eyebrow">Overview</span>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -124,9 +127,9 @@ const displayName =
 
       {/* STATS */}
       <div className="mt-8 grid gap-5 md:grid-cols-3">
-        <Stat label="Total Items" value={stats.totalItems} tone="default" />
-        <Stat label="Running Low" value={stats.runningLow} tone="amber" />
-        <Stat label="Due / overdue" value={stats.dueToday} tone="red" />
+        <Stat label="Total Items" value={stats.totalItems} tone="default" index={0} />
+        <Stat label="Running Low" value={stats.runningLow} tone="amber" index={1} />
+        <Stat label="Due / overdue" value={stats.dueToday} tone="red" index={2} />
       </div>
 
       <section className="surface-card mt-8 rounded-[30px] p-6">
@@ -173,6 +176,8 @@ const displayName =
                   }}
                 />
                 <Line
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={700}
                   type="monotone"
                   dataKey="daysLeft"
                   stroke="#0ea5e9"
@@ -197,10 +202,12 @@ function Stat({
   label,
   value,
   tone = "default",
+  index,
 }: {
   label: string;
   value: number;
   tone?: "default" | "amber" | "red";
+  index: number;
 }) {
   const colorClass =
     tone === "amber"
@@ -210,13 +217,13 @@ function Stat({
       : "text-sky-500";
 
   return (
-    <div className="surface-card rounded-[28px] p-6">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...softSpring, delay: index * 0.07 }} className="restok-stat surface-card rounded-[28px] p-6">
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
         {label}
       </h3>
       <p className={`mt-3 text-4xl font-bold tracking-tight ${colorClass}`}>
-        {value}
+        <AnimatedNumber value={value} />
       </p>
-    </div>
+    </motion.div>
   );
 }

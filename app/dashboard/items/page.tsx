@@ -17,6 +17,7 @@ import { onAuthStateChanged } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { saveQuickAdd, type QuickAddRow } from "@/lib/quickAdd";
+import { panelSpring, softSpring } from "@/lib/motion";
 import ItemActions from "@/components/ItemActions";
 import { daysRemaining, reminderWindow, stockLabel, type StockItem } from "@/lib/inventory";
 import { useInventoryClock } from "@/lib/useInventoryClock";
@@ -416,10 +417,13 @@ export default function ItemsPage() {
           </div>
         )}
 
-        {items.map((item) => {
+        {items.map((item, index) => {
           const status = getStatus(item);
           return (
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...softSpring, delay: Math.min(index, 4) * 0.045 }}
               key={item.id}
               className="surface-card flex flex-col gap-4 rounded-[28px] p-5 md:flex-row md:items-start md:justify-between"
             >
@@ -437,8 +441,11 @@ export default function ItemsPage() {
                 )}
 
                 <div className="mt-4 h-2 rounded-full bg-slate-200 dark:bg-slate-700">
-                  <div
-                    className="h-full rounded-full bg-sky-600"
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ ...softSpring, delay: 0.12 }}
+                    className="h-full origin-left rounded-full bg-sky-600"
                     style={{ width: `${getProgress(item)}%` }}
                   />
                 </div>
@@ -469,7 +476,7 @@ export default function ItemsPage() {
                 <ItemActions item={item} now={now} />
                 <button
                   onClick={() => openEditModal(item)}
-                  className="rounded-2xl bg-blue-500 px-4 py-2 text-white"
+                  className="button-secondary !py-2"
                 >
                   Edit
                 </button>
@@ -478,12 +485,12 @@ export default function ItemsPage() {
                     setDeleteItem(item);
                     setShowDelete(true);
                   }}
-                  className="rounded-2xl bg-red-500 px-4 py-2 text-white"
+                  className="button-danger !py-2"
                 >
                   Delete
                 </button>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -548,10 +555,10 @@ export default function ItemsPage() {
             onClick={() => setShowDelete(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={panelSpring}
               onClick={(e) => e.stopPropagation()}
               className="mx-4 w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
             >
@@ -563,13 +570,13 @@ export default function ItemsPage() {
               <div className="mt-5 flex gap-2">
                 <button
                   onClick={() => setShowDelete(false)}
-                  className="w-1/2 rounded-2xl border p-3"
+                  className="button-secondary w-1/2"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteConfirmed}
-                  className="w-1/2 rounded-2xl bg-red-600 p-3 text-white"
+                  className="button-danger w-1/2"
                 >
                   Delete
                 </button>
@@ -589,10 +596,10 @@ export default function ItemsPage() {
             onClick={() => setShowVendorModal(false)}
           >
             <motion.form
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={panelSpring}
               onSubmit={handleCreateVendor}
               onClick={(e) => e.stopPropagation()}
               className="mx-4 max-h-[90vh] overflow-y-auto w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
@@ -612,14 +619,14 @@ export default function ItemsPage() {
                 <button
                   type="button"
                   onClick={() => setShowVendorModal(false)}
-                  className="w-1/2 rounded-2xl border p-3"
+                  className="button-secondary w-1/2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={vendorSaving}
-                  className="w-1/2 rounded-2xl bg-sky-600 p-3 text-white"
+                  className="button-primary w-1/2"
                 >
                   {vendorSaving ? "Saving…" : "Save"}
                 </button>
@@ -695,10 +702,10 @@ function QuickAddModal({
       onClick={() => { if (!saving) onClose(); }}
     >
       <motion.form
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={panelSpring}
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
         className="mx-4 max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
@@ -759,13 +766,13 @@ function QuickAddModal({
           + Add another row
         </button>
         <div className="flex gap-2 pt-2">
-          <button type="button" onClick={() => { if (!saving) onClose(); }} className="w-1/2 rounded-2xl border p-3">
+          <button type="button" onClick={() => { if (!saving) onClose(); }} className="button-secondary w-1/2">
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="w-1/2 rounded-2xl bg-sky-600 p-3 text-white disabled:opacity-60"
+            className="button-primary w-1/2 disabled:opacity-60"
           >
             {saving ? "Adding…" : "Add items"}
           </button>
@@ -809,10 +816,10 @@ function ItemModal({
       onClick={onClose}
     >
       <motion.form
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={panelSpring}
         onSubmit={onSubmit}
         onClick={(e) => e.stopPropagation()}
         className="mx-4 max-h-[90vh] overflow-y-auto w-full max-w-md space-y-4 rounded-[28px] bg-white p-6 shadow-2xl dark:bg-slate-800"
@@ -940,14 +947,14 @@ function ItemModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-1/2 rounded-2xl border p-3"
+            className="button-secondary w-1/2"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="w-1/2 rounded-2xl bg-sky-600 p-3 text-white"
+            className="button-primary w-1/2"
           >
             {submitLabel}
           </button>

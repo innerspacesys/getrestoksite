@@ -329,14 +329,14 @@ export default function Sidebar({ onNavigate, onSwitchNavMode }: SidebarProps) {
         <button
           type="button"
           onClick={() => setShowSupport(false)}
-          className="w-1/2 border p-3 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="button-secondary w-1/2"
         >
           Cancel
         </button>
 
         <button
           type="submit"
-          className="w-1/2 bg-sky-600 hover:bg-sky-700 text-white p-3 rounded"
+          className="button-primary w-1/2"
         >
           Send
         </button>

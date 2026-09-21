@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import OnboardingWalkthrough from "@/components/OnboardingWalkthrough";
 import OrgLoader from "./OrgLoader";
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import ModernDashboardShell from "@/components/ModernDashboardShell";
 
 type NavigatorWithStandalone = Navigator & {
@@ -122,9 +122,10 @@ export default function DashboardLayout({
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <OrgLoader>
       {navMode === "modern" ? (
-        <div className="subtle-shell min-h-screen">
+        <div className="dashboard-motion subtle-shell min-h-screen">
           <OnboardingWalkthrough />
           {showInstallHint && (
             <div className="mx-3 mt-3 rounded-3xl border border-sky-200 bg-sky-50/95 px-4 py-4 text-sm text-sky-950 shadow-sm md:hidden dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-100">
@@ -160,7 +161,7 @@ export default function DashboardLayout({
           </ModernDashboardShell>
         </div>
       ) : (
-      <div className="subtle-shell min-h-screen md:grid md:grid-cols-[clamp(16rem,22vw,18.5rem)_minmax(0,1fr)]">
+      <div className="dashboard-motion subtle-shell min-h-screen md:grid md:grid-cols-[clamp(16rem,22vw,18.5rem)_minmax(0,1fr)]">
         {/* DESKTOP SIDEBAR */}
         <div className="hidden md:block md:min-w-0">
           <Sidebar onSwitchNavMode={() => switchNavMode("modern")} />
@@ -238,5 +239,6 @@ export default function DashboardLayout({
       </div>
       )}
     </OrgLoader>
+    </MotionConfig>
   );
 }

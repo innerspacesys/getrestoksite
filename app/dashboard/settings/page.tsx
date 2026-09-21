@@ -604,7 +604,7 @@ export default function SettingsPage() {
 
             <button
               disabled={deleteConfirmText !== "DELETE" || role === "owner"}
-              className="w-full rounded-2xl bg-red-600 px-4 py-3 text-white disabled:opacity-50 md:w-auto"
+              className="button-danger w-full disabled:opacity-50 md:w-auto"
             >
               Permanently Delete Account
             </button>

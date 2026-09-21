@@ -157,6 +157,17 @@ button {
     backdrop-filter: blur(14px);
   }
 
+  .button-danger {
+    @apply inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium text-white;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    box-shadow: 0 16px 32px rgba(225, 29, 72, 0.22);
+  }
+
+  .button-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 36px rgba(225, 29, 72, 0.26);
+  }
+
   .eyebrow {
     @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em];
     color: var(--primary-strong);
@@ -203,4 +214,84 @@ button {
   td {
     padding: 8px 4px;
   }
+}
+
+/* Dashboard motion: small distances, quick feedback, no looping decoration. */
+.dashboard-motion {
+  --motion-spring: cubic-bezier(.2, .9, .3, 1.25);
+  --motion-settle: cubic-bezier(.22, 1, .36, 1);
+}
+
+.dashboard-motion button:not(.fixed),
+.dashboard-motion a {
+  transition: background-color 180ms ease, color 180ms ease,
+    border-color 180ms ease, box-shadow 240ms ease,
+    scale 280ms var(--motion-spring), translate 280ms var(--motion-spring);
+}
+
+.dashboard-motion button:not(.fixed):not(:disabled):active,
+.dashboard-motion a:active {
+  scale: .96;
+}
+
+.dashboard-motion :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.dashboard-motion .button-primary,
+.dashboard-motion .button-secondary,
+.dashboard-motion .button-danger {
+  transform: none;
+}
+
+.dashboard-motion main > section:first-child {
+  animation: restok-arrive 550ms var(--motion-settle) both;
+}
+
+.dashboard-motion .restok-hero {
+  background-image: radial-gradient(ellipse at 90% 0%, rgba(56, 189, 248, .16), transparent 65%);
+}
+
+.dashboard-motion .restok-stat {
+  transition: box-shadow 250ms ease, border-color 250ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-motion :is(.button-primary, .button-secondary, .button-danger):not(:disabled):hover {
+    translate: 0 -3px;
+  }
+  .dashboard-motion .button-primary:not(:disabled):hover {
+    box-shadow: 0 20px 38px rgba(2, 132, 199, .3);
+  }
+  .dashboard-motion .button-danger:not(:disabled):hover {
+    box-shadow: 0 20px 38px rgba(225, 29, 72, .28);
+  }
+  .dashboard-motion .restok-stat:hover {
+    border-color: rgba(56, 189, 248, .5);
+    box-shadow: 0 24px 48px rgba(2, 132, 199, .13);
+  }
+}
+
+@keyframes restok-arrive {
+  from { opacity: 0; translate: 0 16px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-motion *, .dashboard-motion *::before, .dashboard-motion *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dashboard-motion button, .dashboard-motion a {
+    scale: none !important;
+    translate: none !important;
+  }
+}
+
+@media print {
+  .dashboard-motion * { animation: none !important; translate: none !important; }
 }

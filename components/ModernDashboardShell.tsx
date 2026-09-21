@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
+import { softSpring, panelSpring } from "@/lib/motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -236,9 +237,11 @@ export default function ModernDashboardShell({
             data-onboarding-scope="navigation"
             className="mx-auto hidden min-w-0 items-center gap-1 rounded-full border border-white/50 bg-white/55 p-1 dark:border-white/10 dark:bg-slate-900/50 lg:flex"
           >
-            {PRIMARY_TABS.map((item) => (
-              <NavPill key={item.href} item={item} active={pathname === item.href} />
-            ))}
+            <LayoutGroup id="desktop-navigation">
+              {PRIMARY_TABS.map((item) => (
+                <NavPill key={item.href} item={item} active={pathname === item.href} />
+              ))}
+            </LayoutGroup>
 
             <div className="relative">
               <button
@@ -267,12 +270,13 @@ export default function ModernDashboardShell({
                     />
                     <motion.div
                       data-onboarding-scope="navigation"
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      initial={{ opacity: 0, y: -10, scale: 0.94 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.15 }}
+                      transition={panelSpring}
                       role="menu"
-                      className="absolute left-1/2 z-50 mt-2 w-52 -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95"
+                      style={{ x: "-50%", transformOrigin: "top center" }}
+                      className="absolute left-1/2 z-50 mt-2 w-52 rounded-3xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95"
                     >
                       {MORE_TABS.map((item) => (
                         <Link
@@ -353,7 +357,7 @@ export default function ModernDashboardShell({
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 280, damping: 24 }}
+              transition={panelSpring}
               className="fixed inset-x-4 top-[5.5rem] z-50 mx-auto w-auto max-w-md overflow-hidden rounded-[30px] border border-white/50 bg-white/92 p-4 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92 md:right-6 md:left-auto md:top-[6.3rem] md:w-[360px]"
             >
               <div className="flex items-center justify-between gap-3 pb-3">
@@ -500,12 +504,15 @@ export default function ModernDashboardShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/88 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88 lg:hidden"
       >
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+          <LayoutGroup id="mobile-navigation">
           {PRIMARY_TABS.map((item) => (
             <Link key={item.href} href={item.href} data-onboarding-target={item.target} aria-current={pathname === item.href ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-medium transition ${pathname === item.href ? "bg-sky-600 text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}>
-              <span className="text-base" aria-hidden="true">{item.emoji}</span><span>{item.label}</span>
+              className={`relative isolate flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-medium transition ${pathname === item.href ? "text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}>
+              {pathname === item.href && <motion.span layoutId="active-tab" transition={softSpring} className="absolute inset-0 -z-10 rounded-2xl bg-sky-600 shadow-md shadow-sky-600/20" />}
+              <motion.span animate={{ y: pathname === item.href ? -2 : 0 }} transition={softSpring} className="text-base" aria-hidden="true">{item.emoji}</motion.span><span>{item.label}</span>
             </Link>
           ))}
+          </LayoutGroup>
         </div>
       </nav>
 
@@ -523,7 +530,7 @@ export default function ModernDashboardShell({
               initial={{ opacity: 0, scale: 0.96, y: 18 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              transition={panelSpring}
               onSubmit={handleSupportSubmit}
               className="surface-panel w-full max-w-md rounded-[30px] p-6 shadow-2xl"
             >
@@ -592,12 +599,13 @@ function NavPill({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       data-onboarding-target={item.target}
-      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+      className={`relative isolate rounded-full px-4 py-2 text-sm font-medium transition ${
         active
-          ? "bg-slate-950 text-white dark:bg-slate-50 dark:text-slate-950"
+          ? "text-white dark:text-slate-950"
           : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
       }`}
     >
+      {active && <motion.span layoutId="active-tab" transition={softSpring} className="absolute inset-0 -z-10 rounded-full bg-slate-950 shadow-sm dark:bg-slate-50" />}
       {item.label}
     </Link>
   );
