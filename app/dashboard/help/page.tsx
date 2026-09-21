@@ -131,9 +131,9 @@ export default function HelpPage() {
               Need something else?
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Use the Support button in the sidebar anytime if something looks
-              wrong, billing needs attention, or you want help deciding how to
-              organize your workspace.
+              Open Contact support from your account menu (your avatar, top
+              right) anytime if something looks wrong, billing needs attention,
+              or you want help deciding how to organize your workspace.
             </p>
           </section>
         </div>

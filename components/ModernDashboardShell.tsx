@@ -16,7 +16,6 @@ import AppVersionLabel from "./AppVersionLabel";
 type ModernDashboardShellProps = {
   children: React.ReactNode;
   mobileTitle: string;
-  onRequestClassicMode: () => void;
 };
 
 type NavItem = {
@@ -61,7 +60,6 @@ const HELP_ITEM: NavItem = { href: "/dashboard/help", label: "Help", emoji: "❓
 export default function ModernDashboardShell({
   children,
   mobileTitle,
-  onRequestClassicMode,
 }: ModernDashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -426,18 +424,6 @@ export default function ModernDashboardShell({
                 >
                   <span>Contact support</span>
                   <span>💬</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAccount(false);
-                    onRequestClassicMode();
-                  }}
-                  className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  <span>Switch to classic sidebar</span>
-                  <span>↺</span>
                 </button>
 
                 <button
