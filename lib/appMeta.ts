@@ -1,5 +1,5 @@
 export const APP_NAME = "Restok";
-export const APP_VERSION = "0.6.3";
+export const APP_VERSION = "0.6.4";
 export const APP_RELEASE_DATE = "2026-09-21";
 export const APP_DISPLAY_VERSION = `v${APP_VERSION}`;
 
