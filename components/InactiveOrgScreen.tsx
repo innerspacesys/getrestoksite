@@ -6,22 +6,13 @@ import { auth, signOut } from "@/lib/auth/client";
 type Props = {
   orgId: string | null;
   role: "owner" | "admin" | "member" | null;
-  scheduledDeletionAt: string | null;
 };
 
-export default function InactiveOrgScreen({ orgId, role, scheduledDeletionAt }: Props) {
+export default function InactiveOrgScreen({ orgId, role }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const canManageBilling = role === "owner" || role === "admin";
-
-  const retentionDate = scheduledDeletionAt
-    ? new Date(scheduledDeletionAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : null;
 
   async function handleResubscribe() {
     if (!orgId || busy) return;
@@ -29,7 +20,7 @@ export default function InactiveOrgScreen({ orgId, role, scheduledDeletionAt }: 
     setError("");
     try {
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch("/api/stripe/create-portal", {
+      const response = await fetch("/api/stripe/resubscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,21 +52,15 @@ export default function InactiveOrgScreen({ orgId, role, scheduledDeletionAt }: 
         <h1 className="mt-3 text-2xl font-bold">Please resubscribe to see your data</h1>
         <p className="mt-3 text-slate-500 dark:text-slate-400">
           Your Restok subscription isn&apos;t active right now, so your supplies, vendors, and
-          reports are paused. Nothing has been deleted.
+          reports are paused.
         </p>
 
         <div className="mt-6 rounded-2xl bg-slate-100/70 p-4 text-sm dark:bg-slate-800/50">
-          {retentionDate ? (
-            <p>
-              Your data is safe and will be kept until{" "}
-              <span className="font-semibold">{retentionDate}</span>. Resubscribe before then to
-              restore everything exactly as you left it.
-            </p>
-          ) : (
-            <p>
-              Your data is safe. Resubscribe to restore full access to your workspace.
-            </p>
-          )}
+          <p>
+            Your workspace is retained while access is paused. Restok does not currently
+            schedule automatic deletion after cancellation. Restore your subscription
+            to access your saved supplies again.
+          </p>
         </div>
 
         {error && (
@@ -91,7 +76,7 @@ export default function InactiveOrgScreen({ orgId, role, scheduledDeletionAt }: 
               disabled={busy}
               className="button-primary w-full disabled:opacity-50 sm:w-auto sm:px-8"
             >
-              {busy ? "Opening billing…" : "Resubscribe"}
+              {busy ? "Opening billing…" : "Continue to billing"}
             </button>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">

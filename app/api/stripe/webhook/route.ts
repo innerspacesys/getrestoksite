@@ -57,6 +57,22 @@ export async function POST(req: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
+    // Recovery pays for the existing workspace; never create another user/org.
+    const recoveryOrg = session.metadata?.restok_recovery_org;
+    if (recoveryOrg) {
+      const ref = adminDb.collection("organizations").doc(recoveryOrg);
+      const org = (await ref.get()).data();
+      if (!org || org.stripeCustomerId !== session.customer || typeof session.subscription !== "string") {
+        return NextResponse.json({ error: "Recovery workspace mismatch" }, { status: 400 });
+      }
+      const subscription = await getStripe().subscriptions.retrieve(session.subscription);
+      if (["active", "trialing", "past_due"].includes(subscription.status)) {
+        await ref.update({ active: true, stripeSubscriptionId: subscription.id,
+          canceledAt: null, scheduledDeletionAt: null });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     const pendingRef = adminDb.collection("pendingSignups").doc(session.id);
     const pendingSnap = await pendingRef.get();
 
@@ -157,14 +173,20 @@ export async function POST(req: Request) {
     event.type === "customer.subscription.updated" ||
     event.type === "customer.subscription.created"
   ) {
-    const sub = event.data.object as Stripe.Subscription;
+    // Fetch current state so delayed webhook deliveries cannot replay stale status.
+    const sub = await getStripe().subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
 
     const nickname =
       sub.items.data[0].price.nickname ||
       sub.items.data[0].price.product ||
       "";
 
-    const cleanPlan = normalizePlan(nickname);
+    const priceId = sub.items.data[0].price.id;
+    const configuredPlan = (["basic", "pro", "premium"] as const).find(plan =>
+      ["MONTHLY", "YEARLY"].some(interval =>
+        process.env[`STRIPE_${interval}_${plan.toUpperCase()}_PRICE_ID`] === priceId));
+    const recoveryPlan = sub.metadata?.restok_price === priceId ? sub.metadata.restok_plan : undefined;
+    const cleanPlan = configuredPlan || normalizePlan(recoveryPlan || nickname);
     const customerId = sub.customer as string;
 
     // Keep access while a payment is still being retried (past_due); only a
@@ -180,6 +202,13 @@ export async function POST(req: Request) {
 
     if (!orgSnap.empty) {
       const orgRef = orgSnap.docs[0].ref;
+      const currentId = orgSnap.docs[0].data().stripeSubscriptionId;
+      if (currentId && currentId !== sub.id) {
+        const current = await getStripe().subscriptions.retrieve(currentId);
+        if (!["canceled", "incomplete_expired"].includes(current.status)) {
+          return NextResponse.json({ received: true });
+        }
+      }
       if (isActive) {
         // Reactivating (incl. resubscribing from the billing portal) restores
         // access and clears any pending data-retention deletion deadline.
@@ -192,18 +221,14 @@ export async function POST(req: Request) {
         });
         console.log("✅ Subscription active → plan:", cleanPlan, `(${sub.status})`);
       } else {
-        // Deactivate with the same 30-day retention grace as an explicit
-        // cancellation, preserving an already-set deadline.
+        // Access is paused; no automatic data-deletion policy is scheduled.
         const existing = orgSnap.docs[0].data();
-        const RETENTION_DAYS = 30;
         await orgRef.update({
           plan: cleanPlan,
           active: false,
           stripeSubscriptionId: sub.id,
           canceledAt: existing.canceledAt ?? Timestamp.now(),
-          scheduledDeletionAt:
-            existing.scheduledDeletionAt ??
-            Timestamp.fromDate(new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000)),
+          scheduledDeletionAt: null,
         });
         console.log("⚠️ Subscription inactive → deactivated:", sub.status);
       }
@@ -224,15 +249,13 @@ export async function POST(req: Request) {
       .get();
 
     if (!orgSnap.empty) {
-      // Keep the org's data for a 30-day grace window before any deletion, so an
-      // accidental cancellation can be undone by resubscribing.
-      const RETENTION_DAYS = 30;
+      // Ignore cancellation of an older subscription after the org resubscribed.
+      const currentId = orgSnap.docs[0].data().stripeSubscriptionId;
+      if (currentId && currentId !== sub.id) return NextResponse.json({ received: true });
       await orgSnap.docs[0].ref.update({
         active: false,
         canceledAt: Timestamp.now(),
-        scheduledDeletionAt: Timestamp.fromDate(
-          new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000)
-        ),
+        scheduledDeletionAt: null,
         stripeSubscriptionId: null,
       });
 

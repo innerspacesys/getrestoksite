@@ -136,7 +136,6 @@ export default function OrgLoader({ children }: { children: React.ReactNode }) {
   const orgActive = useOrgStore((s) => s.orgActive);
   const role = useOrgStore((s) => s.role);
   const orgId = useOrgStore((s) => s.orgId);
-  const scheduledDeletionAt = useOrgStore((s) => s.scheduledDeletionAt);
 
   // While either the collections or the org row are still resolving, show a
   // spinner — but never forever. If a read hangs, surface a retry screen.
@@ -178,7 +177,6 @@ export default function OrgLoader({ children }: { children: React.ReactNode }) {
       <InactiveOrgScreen
         orgId={orgId}
         role={role}
-        scheduledDeletionAt={scheduledDeletionAt}
       />
     );
   }

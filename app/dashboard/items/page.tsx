@@ -16,6 +16,7 @@ import {
 import { onAuthStateChanged } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { saveQuickAdd, type QuickAddRow } from "@/lib/quickAdd";
 import ItemActions from "@/components/ItemActions";
 import { daysRemaining, reminderWindow, stockLabel, type StockItem } from "@/lib/inventory";
 import { useInventoryClock } from "@/lib/useInventoryClock";
@@ -274,21 +275,9 @@ export default function ItemsPage() {
     finally { setSavingItem(false); }
   }
 
-  async function handleQuickAdd(rows: { name: string; daysLast: number }[]) {
+  async function handleQuickAdd(rows: QuickAddRow[]) {
     if (!user || !orgId) throw new Error("Not ready yet. Please try again.");
-    for (const row of rows) {
-      await addDoc(collection(db, "organizations", orgId, "items"), {
-        name: row.name,
-        vendorId: null,
-        locationId: null,
-        daysLast: row.daysLast,
-        reminderDays: 3,
-        description: "",
-        sku: "",
-        createdAt: serverTimestamp(),
-        createdByName: user.displayName || user.email,
-      });
-    }
+    await saveQuickAdd(orgId, rows, user.displayName || user.email);
   }
 
   async function handleDeleteConfirmed() {
@@ -650,13 +639,13 @@ function QuickAddModal({
 }: {
   remaining: number;
   onClose: () => void;
-  onSave: (rows: { name: string; daysLast: number }[]) => Promise<void>;
+  onSave: (rows: QuickAddRow[]) => Promise<void>;
 }) {
   const finiteRemaining = remaining !== Infinity;
-  const [rows, setRows] = useState<{ name: string; daysLast: string }[]>(
+  const [rows, setRows] = useState<{ id: string; name: string; daysLast: string }[]>(() =>
     Array.from(
       { length: Math.min(3, finiteRemaining ? Math.max(1, remaining) : 3) },
-      () => ({ name: "", daysLast: "" })
+      () => ({ id: crypto.randomUUID(), name: "", daysLast: "" })
     )
   );
   const [saving, setSaving] = useState(false);
@@ -676,18 +665,14 @@ function QuickAddModal({
       setError("Add at least one item name.");
       return;
     }
-    const parsed: { name: string; daysLast: number }[] = [];
+    const parsed: QuickAddRow[] = [];
     for (const row of filled) {
       const days = Number(row.daysLast);
       if (!Number.isInteger(days) || days < 1) {
         setError(`Enter how many days “${row.name.trim()}” lasts (a whole number).`);
         return;
       }
-      parsed.push({ name: row.name.trim(), daysLast: days });
-    }
-    if (finiteRemaining && parsed.length > remaining) {
-      setError(`Your plan has room for ${remaining} more ${remaining === 1 ? "item" : "items"}.`);
-      return;
+      parsed.push({ id: row.id, name: row.name.trim(), daysLast: days });
     }
     setSaving(true);
     setError("");
@@ -707,7 +692,7 @@ function QuickAddModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
+      onClick={() => { if (!saving) onClose(); }}
     >
       <motion.form
         initial={{ scale: 0.9, opacity: 0 }}
@@ -734,8 +719,9 @@ function QuickAddModal({
             <span className="w-8" />
           </div>
           {rows.map((row, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div key={row.id} className="flex items-center gap-2">
               <input
+                disabled={saving}
                 className="input flex-1"
                 placeholder="Paper towels, coffee…"
                 value={row.name}
@@ -743,6 +729,7 @@ function QuickAddModal({
                 aria-label={`Item ${index + 1} name`}
               />
               <input
+                disabled={saving}
                 className="input w-24"
                 type="number"
                 min="1"
@@ -755,6 +742,7 @@ function QuickAddModal({
                 type="button"
                 onClick={() => setRows((c) => (c.length > 1 ? c.filter((_, i) => i !== index) : c))}
                 className="w-8 text-slate-400 hover:text-red-500"
+                disabled={saving}
                 aria-label={`Remove row ${index + 1}`}
               >
                 ✕
@@ -764,14 +752,14 @@ function QuickAddModal({
         </div>
         <button
           type="button"
-          disabled={!canAddRow}
-          onClick={() => setRows((c) => [...c, { name: "", daysLast: "" }])}
+          disabled={saving || !canAddRow}
+          onClick={() => setRows((c) => [...c, { id: crypto.randomUUID(), name: "", daysLast: "" }])}
           className="text-sm text-sky-600 hover:underline disabled:opacity-40 dark:text-sky-300"
         >
           + Add another row
         </button>
         <div className="flex gap-2 pt-2">
-          <button type="button" onClick={onClose} className="w-1/2 rounded-2xl border p-3">
+          <button type="button" onClick={() => { if (!saving) onClose(); }} className="w-1/2 rounded-2xl border p-3">
             Cancel
           </button>
           <button
