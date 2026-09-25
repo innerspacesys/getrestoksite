@@ -1,11 +1,18 @@
-import { adminAuth, adminDb } from "@/lib/auth/server";
+import { adminDb } from "@/lib/auth/server";
+import { assertInternal, internalError, logInternalAction, InternalError } from "@/lib/internalApi";
+
 export async function POST(req: Request) {
   try {
     const { token, uid } = await req.json();
-    const caller = await adminAuth.verifyIdToken(token);
-    if (!caller.internalAdmin) return Response.json({ error: "Unauthorized" }, { status: 403 });
-    if (typeof uid !== "string" || !uid) return Response.json({ error: "Missing user" }, { status: 400 });
+    const { uid: actorUid } = await assertInternal(token);
+    if (typeof uid !== "string" || !uid) throw new InternalError("Missing user");
+
+    const before = (await adminDb.collection("users").doc(uid).get()).data();
     await adminDb.collection("users").doc(uid).update({ orgId: null, role: "member" });
+
+    await logInternalAction(actorUid, before?.orgId ?? null, "membership_removed", { uid });
     return Response.json({ success: true });
-  } catch { return Response.json({ error: "Unable to remove membership" }, { status: 400 }); }
+  } catch (error) {
+    return internalError(error);
+  }
 }

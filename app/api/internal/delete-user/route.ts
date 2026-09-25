@@ -1,72 +1,35 @@
-import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/auth/server";
+import { assertInternal, internalError, logInternalAction, InternalError } from "@/lib/internalApi";
 
 /**
- * INTERNAL: Delete user (and org if owner)
- * Requires server-managed admin role: internalAdmin === true
+ * INTERNAL: Delete user (and org if owner). Requires internalAdmin.
  */
 export async function POST(req: Request) {
   try {
     const { token, uid } = await req.json();
+    const { uid: actorUid } = await assertInternal(token);
+    if (typeof uid !== "string" || !uid) throw new InternalError("Missing uid");
 
-    if (!token || !uid) {
-      return NextResponse.json(
-        { error: "Missing token or uid" },
-        { status: 400 }
-      );
-    }
-
-    // --------------------------------------------------
-    // VERIFY INTERNAL ADMIN (CUSTOM CLAIM)
-    // --------------------------------------------------
-    const decoded = await adminAuth.verifyIdToken(token);
-
-    if (!decoded.internalAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
-    }
-
-    // --------------------------------------------------
-    // LOAD USER DOC (FOR ORG CLEANUP)
-    // --------------------------------------------------
     const userRef = adminDb.collection("users").doc(uid);
     const userSnap = await userRef.get();
+    const orgId = userSnap.exists ? (userSnap.data()?.orgId as string | undefined) : undefined;
+    const email = userSnap.exists ? userSnap.data()?.email : null;
 
-    const orgId = userSnap.exists ? userSnap.data()?.orgId : null;
-
-    // --------------------------------------------------
-    // DELETE USER FIRESTORE DOC
-    // --------------------------------------------------
     await userRef.delete().catch(() => null);
 
-    // --------------------------------------------------
-    // DELETE ORG IF USER IS OWNER
-    // --------------------------------------------------
     if (orgId) {
       const orgRef = adminDb.collection("organizations").doc(orgId);
       const orgSnap = await orgRef.get();
-
       if (orgSnap.exists && orgSnap.data()?.ownerId === uid) {
         await orgRef.delete();
       }
     }
 
-    // --------------------------------------------------
-    // DELETE AUTH USER
-    // --------------------------------------------------
     await adminAuth.deleteUser(uid);
 
-    return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    console.error("❌ Internal delete-user error:", err);
-
-    return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : "Failed to delete user",
-      },
-      { status: 500 }
-    );
+    await logInternalAction(actorUid, orgId ?? null, "user_deleted", { uid, email });
+    return Response.json({ success: true });
+  } catch (error) {
+    return internalError(error);
   }
 }

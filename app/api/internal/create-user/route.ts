@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/auth/server";
+import { logInternalAction } from "@/lib/internalApi";
 
 /**
  * INTERNAL: Create test user
@@ -48,6 +49,8 @@ export async function POST(req: Request) {
       name: `${name || "Tester"}'s Organization`,
       ownerId: uid,
       plan: "basic",            // ⚠️ paid plan, not free
+      active: true,             // so the tester can actually access the workspace
+      status: "active",
       beta: true,
       createdAt: new Date(),
     });
@@ -62,6 +65,8 @@ export async function POST(req: Request) {
       role: "owner",
       createdAt: new Date(),
     });
+
+    await logInternalAction(decoded.uid, uid, "test_account_created", { email, uid });
 
     return NextResponse.json({
       success: true,
