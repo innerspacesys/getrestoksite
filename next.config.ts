@@ -1,20 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/:path*",
-        has: [
-          {
-            type: "host",
-            value: "internal.getrestok.com",
-          },
-        ],
-        destination: "/internal/:path*",
-      },
-    ];
-  },
-};
+// Host-based routing for the internal admin subdomain lives in middleware.ts.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

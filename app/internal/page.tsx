@@ -17,8 +17,7 @@ type Plan = "basic" | "pro" | "premium" | "enterprise";
 type OrgStatus = "active" | "paused" | "canceled";
 
 type InternalUser = {
-  // user doc
-  id: string; // uid
+  id: string;
   email: string;
   name?: string;
   displayName?: string;
@@ -27,7 +26,6 @@ type InternalUser = {
   role?: string;
   disabled?: boolean;
 
-  // org doc (enriched)
   plan?: Plan;
   status?: OrgStatus;
   manualPlanOverride?: boolean;
@@ -61,15 +59,16 @@ export default function InternalPanel() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        router.replace("/internal/login");
+        router.replace("/login");
         return;
       }
 
-      // Force refresh so new claims apply immediately
+      // Force refresh so new claims apply immediately.
       const token = await user.getIdTokenResult(true);
 
       if (!token.claims.internalAdmin) {
-        router.replace("/dashboard");
+        // Not an admin — send them to the main app rather than the panel.
+        window.location.href = "https://www.getrestok.com/dashboard";
         return;
       }
 
@@ -112,13 +111,11 @@ export default function InternalPanel() {
     setNewEmail("");
     setNewPass("");
     setNewName("");
-    await loadUsers(); // refresh without full reload
+    await loadUsers();
   }
 
   // -----------------------------
   // LOAD DATA
-  // - We list database users
-  // - Then enrich each OWNER with org fields (plan/status/stripe IDs/etc)
   // -----------------------------
   async function loadUsers() {
     setLoadingData(true);
@@ -131,7 +128,6 @@ export default function InternalPanel() {
 
     const owners: InternalUser[] = [];
 
-    // NOTE: Simple + readable. If you ever get lots of users, we can optimize.
     for (const u of raw) {
       if (!u.orgId) continue;
 
@@ -141,7 +137,7 @@ export default function InternalPanel() {
 
       const org = orgSnap.data() as InternalOrg;
 
-      // Only show REAL org owners to avoid duplicates (members/admins)
+      // Only show REAL org owners to avoid duplicates (members/admins).
       if (org.ownerId !== u.id) continue;
 
       owners.push({
@@ -153,7 +149,6 @@ export default function InternalPanel() {
         role: u.role || "owner",
         disabled: !!u.disabled,
 
-        // org enrichment
         orgName: org.name || "",
         plan: (org.plan as Plan) || "basic",
         status: (org.status as OrgStatus) || "active",
@@ -164,7 +159,6 @@ export default function InternalPanel() {
       });
     }
 
-    // Sort newest-ish by email for sanity
     owners.sort((a, b) => a.email.localeCompare(b.email));
 
     setUsers(owners);
@@ -185,7 +179,8 @@ export default function InternalPanel() {
     const token = await auth.currentUser?.getIdToken();
     if (!token) return alert("Not authenticated.");
     const response = await fetch("/api/internal/remove-membership", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, uid: user.id }),
     });
     if (!response.ok) return alert("Unable to remove membership.");
@@ -278,7 +273,6 @@ export default function InternalPanel() {
       internalNotes: notes,
     });
 
-    // soft update locally (no full reload)
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, internalNotes: notes } : u))
     );
@@ -286,11 +280,11 @@ export default function InternalPanel() {
 
   async function handleLogout() {
     await signOut(auth);
-    router.replace("/internal/login");
+    router.replace("/login");
   }
 
   // -----------------------------
-  // FILTER / SEARCH (nice QoL)
+  // FILTER / SEARCH
   // -----------------------------
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
@@ -307,56 +301,48 @@ export default function InternalPanel() {
     });
   }, [q, users]);
 
-  // -----------------------------
-  // LOADING UI
-  // -----------------------------
   if (!authReady || loadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-12 w-12 border-4 border-sky-600 border-t-transparent rounded-full" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-sky-600 border-t-transparent" />
       </div>
     );
   }
 
-  // -----------------------------
-  // MAIN UI
-  // -----------------------------
   return (
-    <main className="p-10 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Restok Admin Panel</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Internal-only. No payments shown. God-mode controls.
-          </p>
-        </div>
+    <main className="mx-auto max-w-6xl p-4 md:p-10">
+      <section className="surface-panel rounded-[28px] px-6 py-6 md:px-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <span className="eyebrow">Restok staff</span>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+              Admin Panel
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Internal-only. God-mode controls over accounts, plans, and org status.
+            </p>
+          </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-sky-600 text-white rounded-lg"
-          >
-            + Create Test Account
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-slate-700 text-white rounded-lg"
-          >
-            Logout
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowCreate(true)} className="button-primary !py-2.5 text-sm">
+              + Create Test Account
+            </button>
+            <button onClick={handleLogout} className="button-secondary !py-2.5 text-sm">
+              Log out
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Search */}
       <div className="mt-6">
         <input
-          className="input w-full"
+          className="input"
           placeholder="Search email, name, org name, org id…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <div className="text-xs text-slate-400 mt-2">
+        <div className="mt-2 text-xs text-slate-400">
           Showing {filtered.length} owner org(s)
         </div>
       </div>
@@ -364,43 +350,39 @@ export default function InternalPanel() {
       {/* List */}
       <div className="mt-6 space-y-4">
         {filtered.map((u) => (
-          <div key={u.id} className="p-5 border rounded-xl bg-white shadow-sm">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div key={u.id} className="surface-card rounded-[28px] p-5">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <div className="text-lg font-semibold">
+                <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {u.name}{" "}
                   {u.disabled ? (
-                    <span className="ml-2 text-xs px-2 py-1 rounded bg-red-100 text-red-700">
+                    <span className="ml-2 rounded-full bg-red-100 px-2 py-1 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-300">
                       Disabled
                     </span>
                   ) : (
-                    <span className="ml-2 text-xs px-2 py-1 rounded bg-green-100 text-green-700">
+                    <span className="ml-2 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                       Active
                     </span>
                   )}
                 </div>
 
-                <div className="text-sm text-slate-500 break-all">{u.email}</div>
+                <div className="break-all text-sm text-slate-500 dark:text-slate-400">{u.email}</div>
 
                 {!!u.phone && (
-                  <div className="text-sm text-slate-500 mt-1">📞 {u.phone}</div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">📞 {u.phone}</div>
                 )}
 
-                <div className="text-xs mt-3 text-slate-400 space-y-1">
+                <div className="mt-3 space-y-1 text-xs text-slate-400 dark:text-slate-500">
                   <div>UID: {u.id}</div>
                   <div>Org ID: {u.orgId || "None"}</div>
                   <div>Org Name: {u.orgName || "—"}</div>
                   <div>Role: {u.role || "owner"}</div>
                   <div>Status: {u.status || "active"}</div>
                   <div>
-                    Stripe Customer:{" "}
-                    <span className="font-mono">{u.stripeCustomerId || "—"}</span>
+                    Stripe Customer: <span className="font-mono">{u.stripeCustomerId || "—"}</span>
                   </div>
                   <div>
-                    Subscription:{" "}
-                    <span className="font-mono">
-                      {u.stripeSubscriptionId || "—"}
-                    </span>
+                    Subscription: <span className="font-mono">{u.stripeSubscriptionId || "—"}</span>
                   </div>
                 </div>
               </div>
@@ -408,18 +390,12 @@ export default function InternalPanel() {
               {/* Controls */}
               <div className="w-full lg:w-[360px]">
                 {/* Plan controls */}
-                <div className="border rounded-lg p-3">
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold">Plan</div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
                       Override:{" "}
-                      <span
-                        className={
-                          u.manualPlanOverride
-                            ? "text-amber-700 font-semibold"
-                            : "text-slate-500"
-                        }
-                      >
+                      <span className={u.manualPlanOverride ? "font-semibold text-amber-600 dark:text-amber-400" : ""}>
                         {u.manualPlanOverride ? "ON" : "OFF"}
                       </span>
                     </div>
@@ -427,11 +403,9 @@ export default function InternalPanel() {
 
                   <div className="mt-2 flex gap-2">
                     <select
-                      className="border rounded px-2 py-1 w-full"
+                      className="input !py-2"
                       value={u.plan || "basic"}
-                      onChange={(e) =>
-                        updatePlan(u, e.target.value as Plan)
-                      }
+                      onChange={(e) => updatePlan(u, e.target.value as Plan)}
                     >
                       <option value="basic">Basic</option>
                       <option value="pro">Pro</option>
@@ -440,7 +414,7 @@ export default function InternalPanel() {
                     </select>
 
                     <button
-                      className="border rounded px-2 py-1 text-sm"
+                      className="button-secondary !px-3 !py-2 text-sm"
                       onClick={() => toggleManualOverride(u, !u.manualPlanOverride)}
                       title="Toggle manual override (Stripe webhooks won't overwrite when ON)"
                     >
@@ -451,22 +425,13 @@ export default function InternalPanel() {
                   <div className="mt-3">
                     <div className="text-sm font-semibold">Org status</div>
                     <div className="mt-2 flex gap-2">
-                      <button
-                        className="px-3 py-1.5 rounded border text-sm"
-                        onClick={() => updateStatus(u, "active")}
-                      >
+                      <button className="button-secondary !px-3 !py-1.5 text-sm" onClick={() => updateStatus(u, "active")}>
                         Active
                       </button>
-                      <button
-                        className="px-3 py-1.5 rounded border text-sm"
-                        onClick={() => updateStatus(u, "paused")}
-                      >
+                      <button className="button-secondary !px-3 !py-1.5 text-sm" onClick={() => updateStatus(u, "paused")}>
                         Paused
                       </button>
-                      <button
-                        className="px-3 py-1.5 rounded border text-sm"
-                        onClick={() => updateStatus(u, "canceled")}
-                      >
+                      <button className="button-secondary !px-3 !py-1.5 text-sm" onClick={() => updateStatus(u, "canceled")}>
                         Canceled
                       </button>
                     </div>
@@ -474,65 +439,52 @@ export default function InternalPanel() {
                 </div>
 
                 {/* Notes */}
-                <div className="border rounded-lg p-3 mt-3">
+                <div className="mt-3 rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
                   <div className="text-sm font-semibold">Internal notes</div>
                   <textarea
-                    className="mt-2 w-full border rounded p-2 text-sm min-h-[90px]"
+                    className="input mt-2 min-h-[90px] text-sm"
                     defaultValue={u.internalNotes || ""}
-                    placeholder="Notes only you/dad can see…"
+                    placeholder="Staff-only notes…"
                     onBlur={(e) => saveNotes(u, e.target.value)}
                   />
-                  <div className="text-xs text-slate-400 mt-1">
-                    Saves on blur.
-                  </div>
+                  <div className="mt-1 text-xs text-slate-400">Saves on blur.</div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {u.orgId && (
-                    <button
-                      onClick={() => removeFromOrg(u)}
-                      className="px-4 py-2 bg-amber-500 text-white rounded"
-                    >
-                      Remove From Org
+                    <button onClick={() => removeFromOrg(u)} className="button-secondary !px-3 !py-2 text-sm">
+                      Remove from org
                     </button>
                   )}
 
                   {!u.disabled ? (
-                    <button
-                      onClick={() => toggleDisable(u, true)}
-                      className="px-4 py-2 bg-red-600 text-white rounded"
-                    >
-                      Disable User
+                    <button onClick={() => toggleDisable(u, true)} className="button-secondary !px-3 !py-2 text-sm">
+                      Disable user
                     </button>
                   ) : (
-                    <button
-                      onClick={() => toggleDisable(u, false)}
-                      className="px-4 py-2 bg-green-600 text-white rounded"
-                    >
-                      Enable User
+                    <button onClick={() => toggleDisable(u, false)} className="button-secondary !px-3 !py-2 text-sm">
+                      Enable user
                     </button>
                   )}
 
                   <button
                     onClick={() => deleteUser(u)}
-                    className="px-4 py-2 bg-black text-white rounded"
+                    className="button-danger !px-3 !py-2 text-sm"
                     title="Hard delete user + org (if owner)"
                   >
-                    Delete User
+                    Delete user
                   </button>
                 </div>
 
-                <div className="text-xs text-slate-400 mt-2">
-                  ⚠️ Delete is permanent.
-                </div>
+                <div className="mt-2 text-xs text-slate-400">⚠️ Delete is permanent.</div>
               </div>
             </div>
           </div>
         ))}
 
         {filtered.length === 0 && (
-          <div className="p-10 border rounded-xl text-center text-slate-500">
+          <div className="rounded-[28px] border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No matching accounts.
           </div>
         )}
@@ -541,15 +493,15 @@ export default function InternalPanel() {
       {/* CREATE USER MODAL */}
       {showCreate && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setShowCreate(false)}
         >
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={createTester}
-            className="bg-white p-6 rounded-xl w-full max-w-md space-y-4"
+            className="surface-panel w-full max-w-md space-y-4 rounded-[28px] p-6 shadow-2xl"
           >
-            <h2 className="text-xl font-semibold">Create Tester</h2>
+            <h2 className="text-xl font-semibold">Create tester</h2>
 
             <input
               className="input"
@@ -577,24 +529,16 @@ export default function InternalPanel() {
               required
             />
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCreate(false)}
-                className="w-1/2 border py-2 rounded"
-              >
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => setShowCreate(false)} className="button-secondary w-1/2">
                 Cancel
               </button>
-
-              <button
-                type="submit"
-                className="w-1/2 bg-sky-600 text-white py-2 rounded"
-              >
+              <button type="submit" className="button-primary w-1/2">
                 Create
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Creates a Supabase Auth user + org + database user doc.
             </p>
           </form>

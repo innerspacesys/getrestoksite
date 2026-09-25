@@ -25,7 +25,7 @@ export default function InternalLogin() {
     return err instanceof Error ? err.message : "Login failed";
   }
 
-  // If already signed in & internal, redirect immediately
+  // If already signed in & internal, redirect immediately.
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -37,7 +37,7 @@ export default function InternalLogin() {
       const data = snap.data() as { internalAdmin?: boolean } | undefined;
 
       if (data?.internalAdmin) {
-        router.push("/internal");
+        router.push("/");
       } else {
         await signOut(auth);
         setError("You are not authorized to access this panel.");
@@ -65,7 +65,7 @@ export default function InternalLogin() {
         return;
       }
 
-      router.push("/internal");
+      router.push("/");
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     }
@@ -75,25 +75,23 @@ export default function InternalLogin() {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-12 w-12 border-4 border-sky-600 border-t-transparent rounded-full" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-sky-600 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="bg-white p-8 rounded-xl border shadow-sm w-full max-w-md">
-        <h1 className="text-2xl font-bold">
-          Internal Admin Login
-        </h1>
-
-        <p className="text-sm text-slate-500 mt-1">
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="surface-panel w-full max-w-md rounded-[28px] p-8 shadow-2xl">
+        <span className="eyebrow">Staff access</span>
+        <h1 className="mt-4 text-2xl font-bold">Internal Admin Login</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Private Restok staff access
         </p>
 
         {error && (
-          <div className="mt-4 bg-red-100 text-red-700 px-4 py-2 rounded">
+          <div className="mt-4 rounded-2xl bg-red-100 px-4 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
             {error}
           </div>
         )}
@@ -101,7 +99,7 @@ export default function InternalLogin() {
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <input
             type="email"
-            className="input w-full border rounded px-3 py-2"
+            className="input"
             placeholder="Admin email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -110,18 +108,15 @@ export default function InternalLogin() {
 
           <input
             type="password"
-            className="input w-full border rounded px-3 py-2"
+            className="input"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
 
-          <button
-            disabled={loading}
-            className="w-full bg-sky-600 hover:bg-sky-700 text-white py-2 rounded-lg"
-          >
-            {loading ? "Signing in…" : "Log In"}
+          <button disabled={loading} className="button-primary w-full disabled:opacity-60">
+            {loading ? "Signing in…" : "Log in"}
           </button>
         </form>
       </div>
