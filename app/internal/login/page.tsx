@@ -33,14 +33,19 @@ export default function InternalLogin() {
         return;
       }
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const data = snap.data() as { internalAdmin?: boolean } | undefined;
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const data = snap.data() as { internalAdmin?: boolean } | undefined;
 
-      if (data?.internalAdmin) {
-        router.push("/");
-      } else {
+        if (data?.internalAdmin) {
+          router.push("/");
+          return;
+        }
         await signOut(auth);
         setError("You are not authorized to access this panel.");
+      } catch {
+        // Stale/invalid session — clear it so the form is usable.
+        await signOut(auth).catch(() => {});
       }
 
       setCheckingAuth(false);

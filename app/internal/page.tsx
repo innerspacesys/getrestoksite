@@ -63,16 +63,19 @@ export default function InternalPanel() {
         return;
       }
 
-      // Force refresh so new claims apply immediately.
-      const token = await user.getIdTokenResult(true);
-
-      if (!token.claims.internalAdmin) {
-        // Not an admin — send them to the main app rather than the panel.
-        window.location.href = "https://www.getrestok.com/dashboard";
-        return;
+      try {
+        const token = await user.getIdTokenResult();
+        if (!token.claims.internalAdmin) {
+          // Not an admin — send them to the main app rather than the panel.
+          window.location.href = "https://www.getrestok.com/dashboard";
+          return;
+        }
+        setAuthReady(true);
+      } catch {
+        // Stale/invalid session — clear it and show the login screen.
+        await signOut(auth).catch(() => {});
+        router.replace("/login");
       }
-
-      setAuthReady(true);
     });
 
     return () => unsub();
